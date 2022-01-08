@@ -1,4 +1,4 @@
-import com.pavel.example.MyConverters;
+import com.psolomin.example.MyConverters;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
