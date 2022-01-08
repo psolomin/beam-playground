@@ -1,4 +1,4 @@
-# Example
+# Kinesis IO with Enhanced Fan-Out
 
 ## Build
 

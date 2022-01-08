@@ -1,4 +1,4 @@
-package com.pavel.example;
+package com.psolomin.example;
 
 import java.util.Map;
 import org.apache.avro.Schema;
