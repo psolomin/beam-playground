@@ -97,7 +97,7 @@
                         </goals>
                         <configuration>
                             <finalName>
-                                ${project.artifactId}-bundled-${project.version}
+                                ${project.artifactId}-${app.main.class}-bundled-${project.version}
                             </finalName>
                             <filters>
                                 <filter>
@@ -142,7 +142,7 @@
         <profile>
             <id>direct-runner</id>
             <activation>
-                <activeByDefault>false</activeByDefault>
+                <activeByDefault>true</activeByDefault>
             </activation>
             <dependencies>
                 <dependency>
@@ -193,6 +193,7 @@
             <groupId>org.apache.beam</groupId>
             <artifactId>beam-runners-direct-java</artifactId>
             <version>${beam.version}</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>
