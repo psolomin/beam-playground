@@ -1,17 +1,15 @@
 package com.psolomin.consumer;
 
-import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
-import com.amazonaws.regions.Regions;
-import com.amazonaws.services.kinesis.clientlibrary.lib.worker.InitialPositionInStream;
 import org.apache.beam.sdk.Pipeline;
-import org.apache.beam.sdk.io.aws.options.AwsOptions;
-import org.apache.beam.sdk.io.kinesis.KinesisIO;
+import org.apache.beam.sdk.io.aws2.kinesis.KinesisIO;
+import org.apache.beam.sdk.io.aws2.options.AwsOptions;
 import org.apache.beam.sdk.options.Description;
 import org.apache.beam.sdk.options.PipelineOptions;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
 import org.apache.beam.sdk.options.PipelineOptionsValidator;
 import org.apache.beam.sdk.options.Validation;
 import org.apache.beam.sdk.transforms.ParDo;
+import software.amazon.kinesis.common.InitialPositionInStream;
 
 public class Main {
     public interface ConsumerOpts extends PipelineOptions, AwsOptions {
@@ -29,11 +27,7 @@ public class Main {
 
         p.apply("Source", KinesisIO.read()
             .withStreamName(opts.getInputStream())
-            .withInitialPositionInStream(InitialPositionInStream.LATEST)
-            .withAWSClientsProvider(
-                    DefaultAWSCredentialsProviderChain.getInstance(),
-                    Regions.fromName(opts.getAwsRegion())
-            ))
+            .withInitialPositionInStream(InitialPositionInStream.LATEST))
             .apply("Print", ParDo.of(new LoggerParDo()));
 
         p.run().waitUntilFinish();
