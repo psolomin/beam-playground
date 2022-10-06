@@ -35,4 +35,12 @@ PRF=<your profile>
 AWS_PROFILE=$PRF java -jar target/example-com.psolomin.consumer.Main-bundled-0.1-SNAPSHOT.jar \
   --inputStream=stream-01 \
   --awsRegion=eu-west-1
+
+
+mvn clean package -Ddirect-runner -DskipTests \
+  -Dapp.main.class=com.psolomin.consumer.EnhancedFanOutConsumer
+
+AWS_REGION=eu-west-1 AWS_PROFILE=$PRF java -jar \
+  target/example-com.psolomin.consumer.EnhancedFanOutConsumer-bundled-0.1-SNAPSHOT.jar
+
 ```
