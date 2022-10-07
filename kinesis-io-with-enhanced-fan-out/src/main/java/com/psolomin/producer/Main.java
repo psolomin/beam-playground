@@ -37,10 +37,11 @@ public class Main {
         PipelineOptionsValidator.validate(ProducerOpts.class, opts);
         Pipeline p = Pipeline.create(opts);
 
-        buildProducerP(p, opts).apply(KinesisIO.<byte[]>write()
-            .withStreamName(opts.getOutputStream())
-            .withSerializer(r -> r)
-            .withPartitioner(new RandomPartitioner()));
+        buildProducerP(p, opts)
+                .apply(KinesisIO.<byte[]>write()
+                        .withStreamName(opts.getOutputStream())
+                        .withSerializer(r -> r)
+                        .withPartitioner(new RandomPartitioner()));
 
         p.run().waitUntilFinish();
     }

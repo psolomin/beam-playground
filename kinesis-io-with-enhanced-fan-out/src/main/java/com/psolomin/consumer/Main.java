@@ -25,10 +25,14 @@ public class Main {
         PipelineOptionsValidator.validate(ConsumerOpts.class, opts);
         Pipeline p = Pipeline.create(opts);
 
-        p.apply("Source", KinesisIO.read()
-            .withStreamName(opts.getInputStream())
-            .withInitialPositionInStream(InitialPositionInStream.LATEST))
-            .apply("Print", ParDo.of(new LoggerParDo()));
+        p.apply(
+                        "Source",
+                        KinesisIO.read()
+                                .withStreamName(opts.getInputStream())
+                                .withConsumerArn(
+                                        "arn:aws:kinesis:eu-west-1:790288347884:stream/stream-01/consumer/consumer-01:1665080534")
+                                .withInitialPositionInStream(InitialPositionInStream.LATEST))
+                .apply("Print", ParDo.of(new LoggerParDo()));
 
         p.run().waitUntilFinish();
     }
