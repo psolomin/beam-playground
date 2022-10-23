@@ -3,7 +3,7 @@ package com.psolomin.plainconsumer;
 import java.util.Optional;
 import software.amazon.awssdk.services.kinesis.model.SubscribeToShardEvent;
 
-class ShardEvent {
+public class ShardEvent {
     private final ShardEventType type;
     private final Optional<SubscribeToShardEvent> event;
     private final Optional<Throwable> err;
@@ -36,7 +36,7 @@ class ShardEvent {
         return type;
     }
 
-    SubscribeToShardEvent getWrappedEvent() {
+    public SubscribeToShardEvent getWrappedEvent() {
         if (type.equals(ShardEventType.RECORDS) && event.isPresent()) {
             return event.get();
         } else if (type.equals(ShardEventType.RE_SHARD) && event.isPresent()) {
@@ -46,7 +46,7 @@ class ShardEvent {
         }
     }
 
-    Throwable getError() {
+    public Throwable getError() {
         if (type.equals(ShardEventType.ERROR) && err.isPresent()) {
             return err.get();
         } else {

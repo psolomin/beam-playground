@@ -1,9 +1,10 @@
-package com.psolomin.plainconsumer;
+package com.psolomin.plainconsumer.signals;
 
+import com.psolomin.plainconsumer.ShardEvent;
 import java.util.List;
 import software.amazon.awssdk.services.kinesis.model.ChildShard;
 
-class ReShardSignal {
+public class ReShardSignal implements ShardSubscriberSignal {
     private final String senderId;
     private final List<ChildShard> childShards;
 

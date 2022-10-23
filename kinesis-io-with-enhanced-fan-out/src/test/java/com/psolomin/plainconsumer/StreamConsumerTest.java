@@ -1,6 +1,7 @@
 package com.psolomin.plainconsumer;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.psolomin.helpers.KinesisClientBuilderStub;
@@ -8,6 +9,7 @@ import com.psolomin.helpers.SimplifiedKinesisAsyncClientStubBehaviours;
 import com.psolomin.plainconsumer.sink.InMemCollectionRecordsSink;
 import java.util.List;
 import java.util.stream.Stream;
+import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -19,6 +21,14 @@ import software.amazon.awssdk.services.kinesis.model.SubscribeToShardRequest;
 public class StreamConsumerTest {
     private static final String STREAM_NAME = SimplifiedKinesisAsyncClientStubBehaviours.STREAM_NAME;
     private static final String CONSUMER_ARN = SimplifiedKinesisAsyncClientStubBehaviours.CONSUMER_ARN;
+    private StreamConsumer consumer;
+
+    @After
+    public void tearDown() throws InterruptedException {
+        consumer.initiateGracefulShutdown();
+        consumer.awaitTermination();
+        assertFalse(consumer.isRunning());
+    }
 
     @Test
     public void consumesAllEventsFromMultipleShards() throws InterruptedException {
@@ -26,10 +36,8 @@ public class StreamConsumerTest {
         KinesisClientBuilderStub builder = SimplifiedKinesisAsyncClientStubBehaviours.twoShardsWithRecords();
 
         InMemCollectionRecordsSink sink = new InMemCollectionRecordsSink();
-        StreamConsumer p = StreamConsumer.init(config, builder, sink);
+        consumer = StreamConsumer.init(config, builder, sink);
         Thread.sleep(1_000L);
-        p.initiateGracefulShutdown();
-        p.awaitTermination();
         int expectedRecordsCntPerShard = 6;
         checkEventsCnt(expectedRecordsCntPerShard, List.of("shard-000", "shard-001"), List.of(), sink);
         // 2 shards x (1 initial subscribe + 2 re-subscribes)
@@ -42,6 +50,7 @@ public class StreamConsumerTest {
                 subscribeSeqNumber("shard-000", "2"),
                 subscribeSeqNumber("shard-001", "2"));
         assertTrue(expectedSubscribeRequests.containsAll(builder.subscribeRequestsSeen()));
+        assertTrue(consumer.isRunning());
     }
 
     @Test
@@ -50,10 +59,8 @@ public class StreamConsumerTest {
         KinesisClientBuilderStub builder = SimplifiedKinesisAsyncClientStubBehaviours.twoShardsWithRecordsAndShardUp();
 
         InMemCollectionRecordsSink sink = new InMemCollectionRecordsSink();
-        StreamConsumer p = StreamConsumer.init(config, builder, sink);
+        consumer = StreamConsumer.init(config, builder, sink);
         Thread.sleep(1_000L);
-        p.initiateGracefulShutdown();
-        p.awaitTermination();
         int expectedRecordsCntPerShard = 7;
         List<String> parentShards = List.of("shard-000", "shard-001");
         List<String> childShards = List.of("shard-002", "shard-003", "shard-004", "shard-005");
@@ -68,6 +75,7 @@ public class StreamConsumerTest {
                 subscribeSeqNumber("shard-004", "004"),
                 subscribeSeqNumber("shard-005", "005"));
         assertTrue(expectedSubscribeRequests.containsAll(builder.subscribeRequestsSeen()));
+        assertTrue(consumer.isRunning());
     }
 
     @Test
@@ -77,10 +85,8 @@ public class StreamConsumerTest {
                 SimplifiedKinesisAsyncClientStubBehaviours.fourShardsWithRecordsAndShardDown();
 
         InMemCollectionRecordsSink sink = new InMemCollectionRecordsSink();
-        StreamConsumer p = StreamConsumer.init(config, builder, sink);
+        consumer = StreamConsumer.init(config, builder, sink);
         Thread.sleep(1_000L);
-        p.initiateGracefulShutdown();
-        p.awaitTermination();
         int expectedRecordsCntPerShard = 11;
         List<String> parentShards = List.of("shard-000", "shard-001", "shard-002", "shard-003");
         List<String> childShards = List.of("shard-004", "shard-005", "shard-006");
@@ -88,6 +94,7 @@ public class StreamConsumerTest {
         // 4 shards with initial subscribe + 3 new shards with initial subscribe
         int expectedSubscribeRequests = 7;
         assertEquals(expectedSubscribeRequests, builder.subscribeRequestsSeen().size());
+        assertTrue(consumer.isRunning());
     }
 
     @Test
@@ -96,14 +103,13 @@ public class StreamConsumerTest {
         KinesisClientBuilderStub builder = SimplifiedKinesisAsyncClientStubBehaviours.twoShardsEmpty();
 
         InMemCollectionRecordsSink sink = new InMemCollectionRecordsSink();
-        StreamConsumer p = StreamConsumer.init(config, builder, sink);
+        consumer = StreamConsumer.init(config, builder, sink);
         Thread.sleep(1_000L);
-        p.initiateGracefulShutdown();
-        p.awaitTermination();
         assertTrue(sink.shardsSeen().isEmpty());
         // 2 shards x (1 initial subscribe + 2 re-subscribes)
         int expectedSubscribeRequests = 6;
         assertEquals(expectedSubscribeRequests, builder.subscribeRequestsSeen().size());
+        assertTrue(consumer.isRunning());
     }
 
     @Test
@@ -113,16 +119,9 @@ public class StreamConsumerTest {
                 SimplifiedKinesisAsyncClientStubBehaviours.twoShardsWithRecordsOneShardError();
 
         InMemCollectionRecordsSink sink = new InMemCollectionRecordsSink();
-        StreamConsumer p = StreamConsumer.init(config, builder, sink);
+        consumer = StreamConsumer.init(config, builder, sink);
         Thread.sleep(1_000L);
-        p.initiateGracefulShutdown();
-        p.awaitTermination();
-        checkEventsCnt(10, List.of("shard-000"), List.of(), sink);
-        // shard-001 subscriber will only receive 1 batch
-        checkEventsCnt(5, List.of("shard-001"), List.of(), sink);
-        // 2 shards with initial subscribe + 2 re-subscribes from shard-000
-        int expectedSubscribeRequests = 4;
-        assertEquals(expectedSubscribeRequests, builder.subscribeRequestsSeen().size());
+        assertFalse(consumer.isRunning());
     }
 
     @Test
@@ -132,15 +131,14 @@ public class StreamConsumerTest {
                 SimplifiedKinesisAsyncClientStubBehaviours.twoShardsWithRecordsOneShardRecoverableError();
 
         InMemCollectionRecordsSink sink = new InMemCollectionRecordsSink();
-        StreamConsumer p = StreamConsumer.init(config, builder, sink);
+        consumer = StreamConsumer.init(config, builder, sink);
         Thread.sleep(1_000L);
-        p.initiateGracefulShutdown();
-        p.awaitTermination();
         int expectedRecordsCntPerShard = 10;
         checkEventsCnt(expectedRecordsCntPerShard, List.of("shard-000", "shard-001"), List.of(), sink);
         // 2 shards x (1 initial subscribe + 2 re-subscribes)
         int expectedSubscribeRequests = 6;
         assertEquals(expectedSubscribeRequests, builder.subscribeRequestsSeen().size());
+        assertTrue(consumer.isRunning());
     }
 
     private static void checkEventsCnt(

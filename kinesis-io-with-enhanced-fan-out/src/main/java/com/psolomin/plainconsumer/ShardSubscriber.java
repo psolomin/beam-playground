@@ -20,7 +20,9 @@ import software.amazon.awssdk.services.kinesis.model.SubscribeToShardResponseHan
 
 class ShardSubscriber {
     private static final Logger LOG = LoggerFactory.getLogger(ShardSubscriber.class);
-    private static final long START_TIMEOUT = 10_000;
+    private static final long START_TIMEOUT_MS = 10_000;
+    private static final int STOP_ATTEMPTS_MAX = 4;
+    private static final long STOP_TIMEOUT = 1000L / STOP_ATTEMPTS_MAX;
     private static final int QUEUE_CAPACITY = 2;
     private static final long DEFAULT_QUEUE_POLL_TIMEOUT_MS = 15_000;
     private final StreamConsumer pool;
@@ -75,7 +77,7 @@ class ShardSubscriber {
                 .build();
 
         client.subscribeToShard(request, responseHandler);
-        boolean subscriptionWasEstablished = eventsHandlerReadyLatch.await(START_TIMEOUT, TimeUnit.MILLISECONDS);
+        boolean subscriptionWasEstablished = eventsHandlerReadyLatch.await(START_TIMEOUT_MS, TimeUnit.MILLISECONDS);
 
         if (!subscriptionWasEstablished) {
             LOG.error("Subscribe request {} failed.", subscribeRequestId);
@@ -110,8 +112,7 @@ class ShardSubscriber {
                 case ERROR: {
                     if (maybeRecoverableError(event)) return true;
                     else {
-                        // TODO: signal to coordinator
-                        cancel();
+                        handleCriticalError(event);
                         return false;
                     }
                 }
@@ -140,6 +141,10 @@ class ShardSubscriber {
         isActive.set(false);
     }
 
+    void handleCriticalError(ShardEvent event) {
+        pool.handleShardError(this.shardId, event);
+    }
+
     private boolean maybeRecoverableError(ShardEvent event) {
         Throwable error = event.getError();
         Throwable cause;
@@ -164,11 +169,18 @@ class ShardSubscriber {
     }
 
     void cancel() {
-        isActive.set(false);
         shardEventsHandler.cancel();
-        if (!queue.isEmpty()) {
-            LOG.warn("Queue is not empty! Data loss");
+        int attemptNo = 1;
+        while (!queue.isEmpty() && attemptNo <= STOP_ATTEMPTS_MAX) {
+            LOG.warn("Queue is not empty! Waiting {}ms to consume outstanding records.", STOP_TIMEOUT);
+            try {
+                synchronized (queue) {
+                    queue.wait(STOP_TIMEOUT);
+                }
+            } catch (InterruptedException e) {
+                LOG.warn("Queue is not empty! Data loss");
+            }
+            attemptNo++;
         }
-        // consume the rest of the records in the queue
     }
 }

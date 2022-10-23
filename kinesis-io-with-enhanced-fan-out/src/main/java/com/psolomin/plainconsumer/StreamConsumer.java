@@ -1,7 +1,10 @@
 package com.psolomin.plainconsumer;
 
-import static com.psolomin.plainconsumer.ShardsProgressTracker.getShardsAfterParent;
+import static com.psolomin.plainconsumer.ShardsProgressHistory.getShardsAfterParent;
 
+import com.psolomin.plainconsumer.signals.CriticalErrorSignal;
+import com.psolomin.plainconsumer.signals.ReShardSignal;
+import com.psolomin.plainconsumer.signals.ShardSubscriberSignal;
 import com.psolomin.plainconsumer.sink.RecordsSink;
 import java.util.HashMap;
 import java.util.List;
@@ -33,9 +36,9 @@ public class StreamConsumer implements Runnable {
     private final Config config;
     private final ClientBuilder clientBuilder;
     private final ExecutorService executorService;
-    private final ShardsProgressTracker progressTracker;
+    private final ShardsProgressHistory progressTracker;
     private Map<String, ShardEventsConsumer> consumers = new HashMap<>();
-    private final BlockingQueue<ReShardSignal> signals = new LinkedBlockingQueue<>(Integer.MAX_VALUE);
+    private final BlockingQueue<ShardSubscriberSignal> signals = new LinkedBlockingQueue<>(Integer.MAX_VALUE);
     private final AtomicBoolean isRunning = new AtomicBoolean(false);
     private final RecordsSink recordsSink;
 
@@ -44,7 +47,7 @@ public class StreamConsumer implements Runnable {
         this.config = config;
         this.clientBuilder = clientBuilder;
         this.executorService = createThreadPool(config);
-        this.progressTracker = ShardsProgressTracker.initSubscribedShardsProgressInfo(config, clientBuilder);
+        this.progressTracker = ShardsProgressHistory.initSubscribedShardsProgressInfo(config, clientBuilder);
         this.recordsSink = recordsSink;
     }
 
@@ -84,6 +87,10 @@ public class StreamConsumer implements Runnable {
         }
     }
 
+    public boolean isRunning() {
+        return isRunning.get();
+    }
+
     private void cleanUpResources() {
         consumers.forEach((k, v) -> v.initiateGracefulShutdown());
     }
@@ -120,6 +127,21 @@ public class StreamConsumer implements Runnable {
         }
     }
 
+    void handleShardError(String shardId, ShardEvent event) {
+        LOG.info("Error event from {}. Error: {}.", shardId, event.getError());
+        try {
+            if (!signals.offer(
+                    CriticalErrorSignal.fromError(shardId, event), signalsOfferTimeoutMs, TimeUnit.MILLISECONDS)) {
+                LOG.warn(
+                        "Error event from {} was not pushed to the queue, timeout after {}ms",
+                        shardId,
+                        signalsOfferTimeoutMs);
+            }
+        } catch (InterruptedException e) {
+            LOG.warn("Error event from {} was not pushed to the queue, {}", shardId, e);
+        }
+    }
+
     @Override
     public void run() {
         submitShardConsumersTasks();
@@ -128,9 +150,10 @@ public class StreamConsumer implements Runnable {
 
         while (isRunning.get()) {
             try {
-                ReShardSignal reShardSignal = signals.poll(signalsPollTimeoutMs, TimeUnit.MILLISECONDS);
-                if (reShardSignal != null) {
-                    processReShardSignal(reShardSignal);
+                ShardSubscriberSignal signal = signals.poll(signalsPollTimeoutMs, TimeUnit.MILLISECONDS);
+                if (signal != null) {
+                    if (signal instanceof ReShardSignal) processReShardSignal((ReShardSignal) signal);
+                    if (signal instanceof CriticalErrorSignal) processCriticalError((CriticalErrorSignal) signal);
                 } else {
                     LOG.info("No re-shard events to handle. Consumers cnt = {}", consumers.size());
                 }
@@ -165,7 +188,7 @@ public class StreamConsumer implements Runnable {
 
         newShards.forEach(newShard -> {
             String id = newShard.shardId();
-            if (!consumers.containsKey(id)) {
+            if (!progressTracker.shardHistoryExists(id) && !consumers.containsKey(id)) {
                 LOG.info("Starting {} upon signal {}", id, reShardSignal);
                 String beginningSeqNumber = newShard.sequenceNumberRange().startingSequenceNumber();
                 ShardProgress progress = new ShardProgress(config, id, beginningSeqNumber);
@@ -177,6 +200,14 @@ public class StreamConsumer implements Runnable {
                 executorService.submit(newConsumer);
             }
         });
+    }
+
+    private void processCriticalError(CriticalErrorSignal criticalErrorSignal) {
+        LOG.error(
+                "Received unrecoverable error from shard {}: {}",
+                criticalErrorSignal.getSenderId(),
+                criticalErrorSignal.getError());
+        initiateGracefulShutdown();
     }
 
     private List<Shard> waitForNewShards(String receivedFromShardId, List<ChildShard> expectedShards)

@@ -26,6 +26,11 @@ public class InMemCollectionRecordsSink implements RecordsSink {
         records.forEach(r -> addSingleRecord(shardId, r));
     }
 
+    @Override
+    public long getTotalCnt() {
+        return events.values().stream().map(q -> (long) q.size()).reduce(0L, Long::sum);
+    }
+
     public List<KinesisClientRecord> getAllRecords(String shardId) {
         return new ArrayList<>(events.get(shardId));
     }

@@ -14,13 +14,13 @@ import software.amazon.awssdk.services.kinesis.model.Shard;
 import software.amazon.awssdk.services.kinesis.model.ShardFilter;
 import software.amazon.awssdk.services.kinesis.model.ShardFilterType;
 
-public class ShardsProgressTracker {
-    private static final Logger LOG = LoggerFactory.getLogger(ShardsProgressTracker.class);
+public class ShardsProgressHistory {
+    private static final Logger LOG = LoggerFactory.getLogger(ShardsProgressHistory.class);
 
     private static final int shardListingTimeoutMs = 10_000;
     private final Map<String, ShardProgress> shardsProgress;
 
-    private ShardsProgressTracker(Map<String, ShardProgress> shardsProgress) {
+    private ShardsProgressHistory(Map<String, ShardProgress> shardsProgress) {
         this.shardsProgress = shardsProgress;
     }
 
@@ -49,6 +49,11 @@ public class ShardsProgressTracker {
                 .build();
     }
 
+    /*
+     * Note that it returns inactive shards as well, and this is intentional:
+     * If consumer starts with AT_TIMESTAMP or at TRIM_HORIZON,
+     * we need to consume all backlog from closed shards too.
+     */
     static List<Shard> getShardsAfterParent(String parentShardId, Config config, ClientBuilder builder) {
         ListShardsRequest listShardsRequest = ListShardsRequest.builder()
                 .streamName(config.getStreamName())
@@ -58,7 +63,7 @@ public class ShardsProgressTracker {
         return tryListingShards(listShardsRequest, builder).shards();
     }
 
-    static ShardsProgressTracker initSubscribedShardsProgressInfo(Config config, ClientBuilder builder) {
+    static ShardsProgressHistory initSubscribedShardsProgressInfo(Config config, ClientBuilder builder) {
         ListShardsRequest listShardsRequest = ListShardsRequest.builder()
                 .streamName(config.getStreamName())
                 .shardFilter(buildFilter(config))
@@ -68,7 +73,7 @@ public class ShardsProgressTracker {
         response.shards().stream()
                 .map(s -> new ShardProgress(config, s.shardId()))
                 .forEach(s -> progressMap.put(s.getShardId(), s));
-        return new ShardsProgressTracker(progressMap);
+        return new ShardsProgressHistory(progressMap);
     }
 
     private static ListShardsResponse tryListingShards(ListShardsRequest listShardsRequest, ClientBuilder builder) {
@@ -91,6 +96,12 @@ public class ShardsProgressTracker {
     }
 
     void addShard(String shardId, ShardProgress progress) {
-        shardsProgress.put(shardId, progress);
+        if (shardsProgress.putIfAbsent(shardId, progress) != null) {
+            throw new IllegalStateException(String.format("Attempted to overwrite %s", shardId));
+        }
+    }
+
+    boolean shardHistoryExists(String shardId) {
+        return shardsProgress.containsKey(shardId);
     }
 }

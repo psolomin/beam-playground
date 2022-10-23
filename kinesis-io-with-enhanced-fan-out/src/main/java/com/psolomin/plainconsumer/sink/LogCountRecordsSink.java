@@ -22,4 +22,9 @@ public class LogCountRecordsSink implements RecordsSink {
     public void submit(String shardId, Iterable<KinesisClientRecord> records) {
         records.forEach(r -> submit(shardId, r));
     }
+
+    @Override
+    public long getTotalCnt() {
+        return counter.get();
+    }
 }

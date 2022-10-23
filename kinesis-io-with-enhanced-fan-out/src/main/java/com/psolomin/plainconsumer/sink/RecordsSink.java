@@ -6,4 +6,6 @@ public interface RecordsSink {
     void submit(String shardId, KinesisClientRecord record);
 
     void submit(String shardId, Iterable<KinesisClientRecord> records);
+
+    long getTotalCnt();
 }
