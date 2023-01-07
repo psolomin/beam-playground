@@ -106,6 +106,7 @@ mvn package -Ddirect-runner -DskipTests \
 PRF=<your profile>
 AWS_PROFILE=$PRF java -jar target/example-com.psolomin.consumer.Main-bundled-0.1-SNAPSHOT.jar \
 	--inputStream=stream-01 \
+	--consumerArn=arn:aws:kinesis:eu-west-1:790288347884:stream/stream-01/consumer/consumer-01:1665959636 \
 	--awsRegion=eu-west-1
 
 ```

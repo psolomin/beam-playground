@@ -18,6 +18,12 @@ public class Main {
         String getInputStream();
 
         void setInputStream(String value);
+
+        @Validation.Required
+        @Description("Kinesis consumer to use")
+        String getConsumerArn();
+
+        void setConsumerArn(String value);
     }
 
     public static void main(String[] args) {
@@ -29,8 +35,7 @@ public class Main {
                         "Source",
                         KinesisIO.read()
                                 .withStreamName(opts.getInputStream())
-                                .withConsumerArn(
-                                        "arn:aws:kinesis:eu-west-1:790288347884:stream/stream-01/consumer/consumer-01:1665080534")
+                                .withConsumerArn(opts.getConsumerArn())
                                 .withInitialPositionInStream(InitialPositionInStream.LATEST))
                 .apply("Print", ParDo.of(new LoggerParDo()));
 
