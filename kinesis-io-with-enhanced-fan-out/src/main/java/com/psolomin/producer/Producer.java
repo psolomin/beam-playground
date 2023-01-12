@@ -9,7 +9,7 @@ import org.apache.beam.sdk.values.PCollection;
 import org.joda.time.Duration;
 
 public class Producer {
-    static PCollection<byte[]> buildProducerP(Pipeline p, Main.ProducerOpts opts) {
+    public static PCollection<byte[]> buildProducerP(Pipeline p, Main.ProducerOpts opts) {
         GenerateSequence seq = GenerateSequence.from(0).to(opts.getMsgsToWrite())
                 .withRate(opts.getMsgsPerSec(), Duration.standardSeconds(1L));
 

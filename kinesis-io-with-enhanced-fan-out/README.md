@@ -73,7 +73,7 @@ aws kinesis delete-stream stream-01
 Beam
 
 ```
-mvn package -Ddirect-runner -DskipTests \
+mvn package -Pdirect-runner -DskipTests \
 	-Dapp.main.class=com.psolomin.producer.Main
 
 PRF=<your profile>
@@ -87,7 +87,7 @@ AWS_PROFILE=$PRF java -jar target/example-com.psolomin.producer.Main-bundled-0.1
 Plain
 
 ```
-mvn package -Ddirect-runner -DskipTests \
+mvn package -DskipTests \
 	-Dapp.main.class=com.psolomin.plainproducer.Main
 
 AWS_REGION=eu-west-1 AWS_PROFILE=$PRF java -jar \
@@ -100,11 +100,11 @@ AWS_REGION=eu-west-1 AWS_PROFILE=$PRF java -jar \
 Beam (WIP):
 
 ```
-mvn package -Ddirect-runner -DskipTests \
+mvn package -Pdirect-runner -DskipTests \
 	-Dapp.main.class=com.psolomin.consumer.Main
 
 PRF=<your profile>
-AWS_PROFILE=$PRF java -jar target/example-com.psolomin.consumer.Main-bundled-0.1-SNAPSHOT.jar \
+AWS_PROFILE=$PRF AWS_REGION=eu-west-1 java -jar target/example-com.psolomin.consumer.Main-bundled-0.1-SNAPSHOT.jar \
 	--inputStream=stream-01 \
 	--consumerArn=arn:aws:kinesis:eu-west-1:790288347884:stream/stream-01/consumer/consumer-01:1665959636 \
 	--awsRegion=eu-west-1
@@ -115,11 +115,46 @@ Plain:
 
 ```
 
-mvn package -Ddirect-runner -DskipTests \
+mvn package -DskipTests \
 	-Dapp.main.class=com.psolomin.plainconsumer.Main
 
 AWS_REGION=eu-west-1 AWS_PROFILE=$PRF java -jar \
 	target/example-com.psolomin.plainconsumer.Main-bundled-0.1-SNAPSHOT.jar \
 	stream-01 arn:aws:kinesis:eu-west-1:790288347884:stream/stream-01/consumer/consumer-01:1665959636
 
+```
+
+
+## Kinesis Data Analytics applications
+
+These require Flink runner and extra AWS resources:
+
+
+```
+PRF=
+ACCOUNT=790288347884
+S3_BUCKET=p-beam-experiments
+AWS_PROFILE=p-global-admin AWS_REGION=eu-west-1 \
+  scripts/create-iam-roles.sh $ACCOUNT $S3_BUCKET
+```
+
+
+
+Build consumer app
+
+```
+
+```
+
+Build producer app
+
+```
+mvn package -Pflink-runner -DskipTests \
+	-Dapp.main.class=com.psolomin.kda.KdaProducer
+
+PRF=
+S3_BUCKET=p-beam-experiments
+AWS_REGION=eu-west-1 AWS_PROFILE=$PRF aws s3 cp \
+  target/example-com.psolomin.kda.KdaProducer-bundled-0.1-SNAPSHOT.jar \
+  s3://$S3_BUCKET/artifacts/
 ```
