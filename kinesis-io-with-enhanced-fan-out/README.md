@@ -127,29 +127,12 @@ AWS_REGION=eu-west-1 AWS_PROFILE=$PRF java -jar \
 
 ## Kinesis Data Analytics applications
 
-These require Flink runner and extra AWS resources:
-
-
-```
-PRF=
-ACCOUNT=790288347884
-S3_BUCKET=p-beam-experiments
-AWS_PROFILE=p-global-admin AWS_REGION=eu-west-1 \
-  scripts/create-iam-roles.sh $ACCOUNT $S3_BUCKET
-```
-
-
-
-Build consumer app
-
-```
-
-```
+These require Flink runner and new AWS resources.
 
 Build producer app
 
 ```
-mvn package -Pflink-runner -DskipTests \
+mvn package -Pkda -DskipTests \
 	-Dapp.main.class=com.psolomin.kda.KdaProducer
 
 PRF=
@@ -158,3 +141,7 @@ AWS_REGION=eu-west-1 AWS_PROFILE=$PRF aws s3 cp \
   target/example-com.psolomin.kda.KdaProducer-bundled-0.1-SNAPSHOT.jar \
   s3://$S3_BUCKET/artifacts/
 ```
+
+Create KDA app
+
+Check [scripts instructions](./scripts/README.md) for that

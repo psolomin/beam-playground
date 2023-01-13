@@ -1,20 +1,52 @@
+import argparse
 import boto3
+import logging
+import pathlib
 
 from mypy_boto3_kinesisanalyticsv2 import KinesisAnalyticsV2Client
 from mypy_boto3_sts import STSClient
+from mypy_boto3_s3 import S3Client
+
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger()
 
 
 def get_account_id(client: STSClient):
     return client.get_caller_identity()["Account"]
 
 
-def create_app(
+def upload_jar(client: S3Client, local_path: str, bucket: str, s3_path: str):
+    logger.info("Uploading jar %s to %s", local_path, s3_path)
+    client.upload_file(
+        Filename=local_path,
+        Bucket=bucket,
+        Key=s3_path
+    )
+
+
+def create_or_update_app(
         client: KinesisAnalyticsV2Client,
+        region: str,
         name: str,
         role_arn: str,
         s3_bucket: str,
         app_artifact_path: str,
 ):
+    bucket_arn = f"arn:aws:s3:::{s3_bucket}"
+    app_cli_args = {
+        "PropertyGroups": [
+            {
+                "PropertyGroupId": "BeamApplicationProperties",
+                "PropertyMap": {
+                    "AwsRegion": "eu-west-1",
+                    "OutputStream": "stream-01",
+                    "MsgsToWrite": "1000",
+                    "MsgsPerSec": "50"
+                }
+            }
+        ]
+    }
     configuration = {
         "FlinkApplicationConfiguration": {
             "CheckpointConfiguration": {
@@ -35,20 +67,11 @@ def create_app(
                 "ParallelismPerKPU": 1
             },
         },
-        "EnvironmentProperties": {
-            "PropertyGroups": [
-                {
-                    "PropertyGroupId": "BeamApplicationProperties",
-                    "PropertyMap": {
-                        "InputStreamName": "steam-01",
-                    }
-                }
-            ]
-        },
+        "EnvironmentProperties": app_cli_args,
         "ApplicationCodeConfiguration": {
             "CodeContent": {
                 "S3ContentLocation": {
-                    "BucketARN": f"arn:aws:s3:::{s3_bucket}",
+                    "BucketARN": bucket_arn,
                     "FileKey": app_artifact_path
                 }
             },
@@ -58,28 +81,74 @@ def create_app(
             "SnapshotsEnabled": True
         }
     }
-    client.create_application(
-        ApplicationName=name,
-        RuntimeEnvironment="FLINK-1_15",
-        ServiceExecutionRole=role_arn,
-        ApplicationConfiguration=configuration,
-        ApplicationMode="STREAMING"
-    )
+    apps_list = client.list_applications(Limit=20)["ApplicationSummaries"]
+    apps_names_list = [a["ApplicationName"] for a in apps_list]
+    log_stream_arn = f"arn:aws:logs:{region}:{aws_account_id}:log-group:" \
+                     f"/aws/kinesis-analytics/{name}:log-stream:kinesis-analytics-log-stream"
+
+    if name not in apps_names_list:
+        logger.info("Creating app %s", name)
+        client.create_application(
+            ApplicationName=name,
+            RuntimeEnvironment="FLINK-1_15",
+            ServiceExecutionRole=role_arn,
+            ApplicationConfiguration=configuration,
+            ApplicationMode="STREAMING",
+            CloudWatchLoggingOptions=[{
+                "LogStreamARN": log_stream_arn
+            }]
+        )
+    else:
+        logger.info("Updating app %s", name)
+        app_details = list(filter(lambda d: d["ApplicationName"] == name, apps_list))[0]
+        client.update_application(
+            ApplicationName=name,
+            CurrentApplicationVersionId=app_details["ApplicationVersionId"],
+            ApplicationConfigurationUpdate={
+                "ApplicationCodeConfigurationUpdate": {
+                    "CodeContentTypeUpdate": "ZIPFILE",
+                    "CodeContentUpdate": {
+                        "S3ContentLocationUpdate": {
+                            "BucketARNUpdate": bucket_arn,
+                            "FileKeyUpdate": app_artifact_path,
+                        }
+                    }
+                },
+                "EnvironmentPropertyUpdates": app_cli_args,
+            }
+        )
 
 
 if __name__ == "__main__":
-    region = "eu-west-1"
-    app_name = "Producer"
-    aws_s3_bucket = "p-beam-experiments"
-    artifact_s3_path = "artifacts/example-com.psolomin.kda.KdaProducer-bundled-0.1-SNAPSHOT.jar"
-    kda_client: KinesisAnalyticsV2Client = boto3.client("kinesisanalyticsv2", region)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--region", required=True)
+    parser.add_argument("--app-name", required=True)
+    parser.add_argument("--bucket", required=True)
+    parser.add_argument("--jar-name", required=True)
+    parser.add_argument("--jar-local-path", required=True)
+    parser.add_argument("--jar-s3-path", required=True)
+    args = parser.parse_args()
+
+    kda_client: KinesisAnalyticsV2Client = boto3.client("kinesisanalyticsv2", args.region)
     sts_client: STSClient = boto3.client("sts")
+    s3_client: S3Client = boto3.client("s3")
     aws_account_id = get_account_id(sts_client)
     app_role_arn = f"arn:aws:iam::{aws_account_id}:role/BeamKdaAppRole"
-    create_app(
+    jar_local_key = pathlib.Path(args.jar_local_path) / args.jar_name
+    jar_s3_key = pathlib.Path(args.jar_s3_path) / args.jar_name
+
+    upload_jar(
+        s3_client,
+        str(jar_local_key),
+        args.bucket,
+        str(jar_s3_key)
+    )
+
+    create_or_update_app(
         kda_client,
-        app_name,
+        args.region,
+        args.app_name,
         app_role_arn,
-        aws_s3_bucket,
-        artifact_s3_path
+        args.bucket,
+        str(jar_s3_key)
     )

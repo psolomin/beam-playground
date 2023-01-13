@@ -1,11 +1,13 @@
+import argparse
+import boto3
+import json
 import logging
-
-import boto3, json
 
 from mypy_boto3_iam import IAMClient
 from mypy_boto3_sts import STSClient
 
 
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger()
 
 
@@ -43,49 +45,54 @@ def create_role_and_its_policies(
                 "Sid": "ReadCodeAndWriteOutput",
                 "Effect": "Allow",
                 "Action": [
-                    "logs:DescribeLogGroups",
                     "s3:Get*",
                     "s3:List*"
                 ],
                 "Resource": [
-                    f"arn:aws:logs:{region}::*",
                     f"arn:aws:s3:::{s3_bucket_name}",
                     f"arn:aws:s3:::{s3_bucket_name}/*"
                 ]
             },
             {
-                "Sid": "DescribeLogStreams",
+                "Sid": "UseStream",
                 "Effect": "Allow",
-                "Action": "logs:DescribeLogStreams",
-                "Resource": f"arn:aws:logs:{region}::*"
-            },
-            {
-                "Sid": "PutLogEvents",
-                "Effect": "Allow",
-                "Action": "logs:PutLogEvents",
-                "Resource": f"arn:aws:logs:{region}::*"
-            },
-            {
-                "Sid": "ListCloudwatchLogGroups",
-                "Effect": "Allow",
-                "Action": [
-                    "logs:DescribeLogGroups"
-                ],
+                "Action": "kinesis:*",
                 "Resource": [
-                    f"arn:aws:logs:{region}::*"
+                    f"arn:aws:kinesis:eu-west-1:{aws_account_id}:stream/stream-01",
+                    f"arn:aws:kinesis:eu-west-1:{aws_account_id}:stream/stream-01/*"
                 ]
             },
+            # logging
             {
-                "Sid": "ReadInputStream",
                 "Effect": "Allow",
-                "Action": "kinesis:*",
-                "Resource": f"arn:aws:kinesis:{region}::stream/{kinesis_stream_name}"
+                "Action": [
+                    "autoscaling:Describe*",
+                    "cloudwatch:*",
+                    "logs:*",
+                    "sns:*",
+                    "iam:GetPolicy",
+                    "iam:GetPolicyVersion",
+                    "iam:GetRole",
+                    "oam:ListSinks"
+                ],
+                "Resource": "*"
             },
             {
-                "Sid": "WriteOutputStream",
                 "Effect": "Allow",
-                "Action": "kinesis:*",
-                "Resource": f"arn:aws:kinesis:{region}::stream/{kinesis_stream_name}"
+                "Action": "iam:CreateServiceLinkedRole",
+                "Resource": "arn:aws:iam::*:role/aws-service-role/events.amazonaws.com/AWSServiceRoleForCloudWatchEvents*",
+                "Condition": {
+                    "StringLike": {
+                        "iam:AWSServiceName": "events.amazonaws.com"
+                    }
+                }
+            },
+            {
+                "Effect": "Allow",
+                "Action": [
+                    "oam:ListAttachedLinks"
+                ],
+                "Resource": "arn:aws:oam:*:*:sink/*"
             }
         ]
     }
@@ -112,6 +119,12 @@ def destroy_if_exist_role_and_its_policies(
         logger.warning("Attempted to detach failed: %s - %s", role_name, policy_arn)
 
     try:
+        versions = client.list_policy_versions(PolicyArn=policy_arn)["Versions"]
+        for version in versions:
+            if not version["IsDefaultVersion"]:
+                client.delete_policy_version(
+                    PolicyArn=policy_arn, VersionId=version["VersionId"])
+
         client.delete_policy(PolicyArn=policy_arn)
     except client.exceptions.NoSuchEntityException:
         logger.warning("Attempted to delete non-existing %s", policy_arn)
@@ -123,22 +136,25 @@ def destroy_if_exist_role_and_its_policies(
 
 
 if __name__ == "__main__":
-    aws_region = "eu-west-1"
-    bucket_name = "p-beam-experiments"
-    stream_name = "stream-01"
-    iam_role_name = "BeamKdaAppRole"
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--region", required=True)
+    parser.add_argument("--bucket", required=True)
+    parser.add_argument("--stream", required=True)
+    parser.add_argument("--role", required=True)
+    args = parser.parse_args()
+
     iam_client: IAMClient = boto3.client("iam")
     sts_client: STSClient = boto3.client("sts")
     aws_account_id = get_account_id(sts_client)
     destroy_if_exist_role_and_its_policies(
         iam_client,
         aws_account_id,
-        iam_role_name
+        args.role
     )
     create_role_and_its_policies(
         iam_client,
-        aws_region,
-        iam_role_name,
-        bucket_name,
-        stream_name
+        args.region,
+        args.role,
+        args.bucket,
+        args.stream
     )
