@@ -58,8 +58,8 @@ def create_role_and_its_policies(
                 "Effect": "Allow",
                 "Action": "kinesis:*",
                 "Resource": [
-                    f"arn:aws:kinesis:eu-west-1:{aws_account_id}:stream/stream-01",
-                    f"arn:aws:kinesis:eu-west-1:{aws_account_id}:stream/stream-01/*"
+                    f"arn:aws:kinesis:{region}:{aws_account_id}:stream/{kinesis_stream_name}",
+                    f"arn:aws:kinesis:{region}:{aws_account_id}:stream/{kinesis_stream_name}/*"
                 ]
             },
             # logging

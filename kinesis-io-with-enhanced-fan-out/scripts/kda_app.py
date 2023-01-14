@@ -1,4 +1,6 @@
 import argparse
+from typing import Optional
+
 import boto3
 import logging
 import pathlib
@@ -17,7 +19,7 @@ def get_account_id(client: STSClient):
 
 
 def upload_jar(client: S3Client, local_path: str, bucket: str, s3_path: str):
-    logger.info("Uploading jar %s to %s", local_path, s3_path)
+    logger.info("Uploading jar %s to %s - %s", local_path, bucket, s3_path)
     client.upload_file(
         Filename=local_path,
         Bucket=bucket,
@@ -25,28 +27,49 @@ def upload_jar(client: S3Client, local_path: str, bucket: str, s3_path: str):
     )
 
 
+def producer_properties(region: str, stream: str):
+    return {
+        "PropertyGroupId": "ProducerProperties",
+        "PropertyMap": {
+            "AwsRegion": region,
+            "OutputStream": stream,
+            "MsgsToWrite": "1000",
+            "MsgsPerSec": "50"
+        }
+    }
+
+
+def consumer_properties(region: str, stream: str, consumer_arn: Optional[str]):
+    return {
+        "PropertyGroupId": "ConsumerProperties",
+        "PropertyMap": {
+            "AwsRegion": region,
+            "InputStream": stream,
+            "ConsumerArn": consumer_arn
+        }
+    }
+
+
+def name_to_props(region: str, name: str, stream: str, consumer_arn: Optional[str] = None):
+    d = {
+        "Producer": producer_properties(region, stream),
+        "Consumer": consumer_properties(region, stream, consumer_arn)
+    }
+    return d[name]
+
+
 def create_or_update_app(
         client: KinesisAnalyticsV2Client,
         region: str,
         name: str,
+        stream: str,
+        consumer_arn: Optional[str],
         role_arn: str,
         s3_bucket: str,
         app_artifact_path: str,
 ):
     bucket_arn = f"arn:aws:s3:::{s3_bucket}"
-    app_cli_args = {
-        "PropertyGroups": [
-            {
-                "PropertyGroupId": "BeamApplicationProperties",
-                "PropertyMap": {
-                    "AwsRegion": "eu-west-1",
-                    "OutputStream": "stream-01",
-                    "MsgsToWrite": "1000",
-                    "MsgsPerSec": "50"
-                }
-            }
-        ]
-    }
+    app_cli_args = {"PropertyGroups": [name_to_props(region, name, stream, consumer_arn)]}
     configuration = {
         "FlinkApplicationConfiguration": {
             "CheckpointConfiguration": {
@@ -122,7 +145,10 @@ def create_or_update_app(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--region", required=True)
-    parser.add_argument("--app-name", required=True)
+    parser.add_argument("--role", required=True)
+    parser.add_argument("--app-name", required=True, choices=["Producer", "Consumer"])
+    parser.add_argument("--stream-name", required=True)
+    parser.add_argument("--consumer-arn", required=False, default=None)
     parser.add_argument("--bucket", required=True)
     parser.add_argument("--jar-name", required=True)
     parser.add_argument("--jar-local-path", required=True)
@@ -133,7 +159,7 @@ if __name__ == "__main__":
     sts_client: STSClient = boto3.client("sts")
     s3_client: S3Client = boto3.client("s3")
     aws_account_id = get_account_id(sts_client)
-    app_role_arn = f"arn:aws:iam::{aws_account_id}:role/BeamKdaAppRole"
+    app_role_arn = f"arn:aws:iam::{aws_account_id}:role/{args.role}"
     jar_local_key = pathlib.Path(args.jar_local_path) / args.jar_name
     jar_s3_key = pathlib.Path(args.jar_s3_path) / args.jar_name
 
@@ -148,6 +174,8 @@ if __name__ == "__main__":
         kda_client,
         args.region,
         args.app_name,
+        args.stream_name,
+        args.consumer_arn,
         app_role_arn,
         args.bucket,
         str(jar_s3_key)

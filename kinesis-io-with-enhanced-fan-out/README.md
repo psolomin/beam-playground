@@ -7,6 +7,14 @@ $ java -version
 openjdk version "11.0.11" 2021-04-20
 OpenJDK Runtime Environment AdoptOpenJDK-11.0.11+9 (build 11.0.11+9)
 OpenJDK 64-Bit Server VM AdoptOpenJDK-11.0.11+9 (build 11.0.11+9, mixed mode)
+
+export JAVA_HOME=<your jdk location>
+export AWS_ACCOUNT=<your account id>
+export AWS_PROFILE=<your profile>
+export AWS_REGION=<your region>
+export S3_BUCKET=<your artifacts bucket>
+export STREAM=stream-01
+export ROLE=BeamKdaAppRole
 ```
 
 ## Build
@@ -30,31 +38,16 @@ mvn spotless:apply
 
 ## AWS resources
 
-Env:
-
-```
-ACCOUNT_ID=
-export AWS_PROFILE=
-export AWS_REGION=
-```
-
 Create stream and consumer:
 
 ```
-aws kinesis create-stream --stream-name stream-01 \
-	--shard-count 1 \
+aws kinesis create-stream --stream-name $STREAM \
+	--shard-count 2 \
 	--stream-mode-details=StreamMode=PROVISIONED
 
 aws kinesis register-stream-consumer \
-	--stream-arn arn:aws:kinesis:{AWS_REGION}:${ACCOUNT_ID}:stream/stream-01 \
+	--stream-arn arn:aws:kinesis:{AWS_REGION}:${ACCOUNT_ID}:stream/$STREAM \
 	--consumer-name consumer-01
-```
-
-Update number of shards:
-
-```
-aws kinesis update-shard-count \
-	--stream-name stream-01 --target-shard-count 2 --scaling-type UNIFORM_SCALING
 ```
 
 
@@ -62,10 +55,10 @@ Delete consumer and stream:
 
 ```
 aws kinesis deregister-stream-consumer \
-	--stream-arn arn:aws:kinesis:{AWS_REGION}:${ACCOUNT_ID}:stream/stream-01 \
+	--stream-arn arn:aws:kinesis:{AWS_REGION}:${ACCOUNT_ID}:stream/$STREAM \
 	--consumer-name consumer-01
 
-aws kinesis delete-stream stream-01
+aws kinesis delete-stream $STREAM
 ```
 
 ## Run Producer
@@ -73,13 +66,12 @@ aws kinesis delete-stream stream-01
 Beam
 
 ```
-mvn package -Pdirect-runner -DskipTests \
+mvn package -DskipTests \
 	-Dapp.main.class=com.psolomin.producer.Main
 
-PRF=<your profile>
-AWS_PROFILE=$PRF java -jar target/example-com.psolomin.producer.Main-bundled-0.1-SNAPSHOT.jar \
-	--outputStream=stream-01 --msgsToWrite=30 \
-	--awsRegion=eu-west-1 \
+java -jar target/example-com.psolomin.producer.Main-bundled-0.1-SNAPSHOT.jar \
+	--outputStream=$STREAM --msgsToWrite=30 \
+	--awsRegion=$AWS_REGION \
 	--msgsPerSec=1 --runner=DirectRunner
 
 ```
@@ -90,24 +82,22 @@ Plain
 mvn package -DskipTests \
 	-Dapp.main.class=com.psolomin.plainproducer.Main
 
-AWS_REGION=eu-west-1 AWS_PROFILE=$PRF java -jar \
-	target/example-com.psolomin.plainproducer.Main-bundled-0.1-SNAPSHOT.jar \
-	stream-01 10 5000
+java -jar target/example-com.psolomin.plainproducer.Main-bundled-0.1-SNAPSHOT.jar \
+	$STREAM 10 5000
 ```
 
 ## Run Consumer
 
-Beam (WIP):
+Beam (Direct runner):
 
 ```
-mvn package -Pdirect-runner -DskipTests \
+mvn package -DskipTests \
 	-Dapp.main.class=com.psolomin.consumer.Main
 
-PRF=<your profile>
-AWS_PROFILE=$PRF AWS_REGION=eu-west-1 java -jar target/example-com.psolomin.consumer.Main-bundled-0.1-SNAPSHOT.jar \
-	--inputStream=stream-01 \
-	--consumerArn=arn:aws:kinesis:eu-west-1:790288347884:stream/stream-01/consumer/consumer-01:1665959636 \
-	--awsRegion=eu-west-1
+java -jar target/example-com.psolomin.consumer.Main-bundled-0.1-SNAPSHOT.jar \
+	--inputStream=$STREAM \
+	--consumerArn=arn:aws:kinesis:"$AWS_REGION":"$AWS_ACCOUNT":stream/"$STREAM"/consumer/consumer-01:1665959636 \
+	--awsRegion=$AWS_REGION
 
 ```
 
@@ -118,9 +108,8 @@ Plain:
 mvn package -DskipTests \
 	-Dapp.main.class=com.psolomin.plainconsumer.Main
 
-AWS_REGION=eu-west-1 AWS_PROFILE=$PRF java -jar \
-	target/example-com.psolomin.plainconsumer.Main-bundled-0.1-SNAPSHOT.jar \
-	stream-01 arn:aws:kinesis:eu-west-1:790288347884:stream/stream-01/consumer/consumer-01:1665959636
+java -jar target/example-com.psolomin.plainconsumer.Main-bundled-0.1-SNAPSHOT.jar \
+	stream-01 arn:aws:kinesis:"$AWS_REGION":"$AWS_ACCOUNT":stream/"$STREAM"/consumer/consumer-01:1665959636
 
 ```
 
@@ -129,17 +118,14 @@ AWS_REGION=eu-west-1 AWS_PROFILE=$PRF java -jar \
 
 These require Flink runner and new AWS resources.
 
-Build producer app
+Build producer & consumer apps
 
 ```
 mvn package -Pkda -DskipTests \
 	-Dapp.main.class=com.psolomin.kda.KdaProducer
 
-PRF=
-S3_BUCKET=p-beam-experiments
-AWS_REGION=eu-west-1 AWS_PROFILE=$PRF aws s3 cp \
-  target/example-com.psolomin.kda.KdaProducer-bundled-0.1-SNAPSHOT.jar \
-  s3://$S3_BUCKET/artifacts/
+mvn package -Pkda -DskipTests \
+	-Dapp.main.class=com.psolomin.kda.KdaConsumer
 ```
 
 Create KDA app

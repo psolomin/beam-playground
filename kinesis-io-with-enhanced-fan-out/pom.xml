@@ -133,14 +133,6 @@
                             <finalName>
                                 ${project.artifactId}-${app.main.class}-bundled-${project.version}
                             </finalName>
-                            <artifactSet>
-                                <excludes>
-                                    <exclude>org.apache.flink:force-shading</exclude>
-                                    <exclude>com.google.code.findbugs:jsr305</exclude>
-                                    <exclude>org.slf4j:*</exclude>
-                                    <exclude>log4j:*</exclude>
-                                </excludes>
-                            </artifactSet>
                             <filters>
                                 <filter>
                                     <artifact>*:*</artifact>
@@ -195,6 +187,20 @@
                     <scope>runtime</scope>
                 </dependency>
             </dependencies>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-compiler-plugin</artifactId>
+                        <configuration>
+                            <excludes>
+                                <exclude>**com/psolomin/kda/*.*</exclude>
+                            </excludes>
+                        </configuration>
+                    </plugin>
+
+                </plugins>
+            </build>
         </profile>
 
         <profile>
@@ -202,6 +208,29 @@
             <activation>
                 <activeByDefault>false</activeByDefault>
             </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-shade-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <phase>package</phase>
+                                <configuration>
+                                    <artifactSet>
+                                        <excludes>
+                                            <exclude>org.apache.flink:force-shading</exclude>
+                                            <exclude>com.google.code.findbugs:jsr305</exclude>
+                                            <exclude>org.slf4j:*</exclude>
+                                            <exclude>log4j:*</exclude>
+                                        </excludes>
+                                    </artifactSet>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
             <dependencies>
                 <dependency>
                     <groupId>org.apache.beam</groupId>
