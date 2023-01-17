@@ -1,6 +1,7 @@
 package com.psolomin.producer;
 
-import java.nio.charset.StandardCharsets;
+import com.psolomin.records.LogEvent;
+import java.io.IOException;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.io.GenerateSequence;
 import org.apache.beam.sdk.transforms.DoFn;
@@ -14,11 +15,13 @@ public class Producer {
                 .to(opts.getMsgsToWrite())
                 .withRate(opts.getMsgsPerSec(), Duration.standardSeconds(1L));
 
-        return p.apply("Emitter", seq).apply("Convert to Bytes", ParDo.of(new DoFn<Long, byte[]>() {
-            @ProcessElement
-            public void processElement(@Element Long record, OutputReceiver<byte[]> out) {
-                out.output(record.toString().getBytes(StandardCharsets.UTF_8));
-            }
-        }));
+        return p.apply("Emitter", seq)
+                .apply("Convert to Records", ParDo.of(new DoFn<Long, LogEvent>() {
+                    @ProcessElement
+                    public void processElement(@Element Long id, OutputReceiver<LogEvent> out) throws IOException {
+                        out.output(LogEvent.newBuilder().setId(id).build());
+                    }
+                }))
+                .apply("Convert to Bytes", ParDo.of(new LogEventSerializer()));
     }
 }

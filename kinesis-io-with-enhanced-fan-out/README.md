@@ -96,23 +96,11 @@ mvn package -DskipTests \
 
 java -jar target/example-com.psolomin.consumer.Main-bundled-0.1-SNAPSHOT.jar \
 	--inputStream=$STREAM \
+	--sinkLocation=$(pwd)/output \
 	--consumerArn=arn:aws:kinesis:"$AWS_REGION":"$AWS_ACCOUNT":stream/"$STREAM"/consumer/consumer-01:1665959636 \
 	--awsRegion=$AWS_REGION
 
 ```
-
-Plain:
-
-```
-
-mvn package -DskipTests \
-	-Dapp.main.class=com.psolomin.plainconsumer.Main
-
-java -jar target/example-com.psolomin.plainconsumer.Main-bundled-0.1-SNAPSHOT.jar \
-	stream-01 arn:aws:kinesis:"$AWS_REGION":"$AWS_ACCOUNT":stream/"$STREAM"/consumer/consumer-01:1665959636
-
-```
-
 
 ## Kinesis Data Analytics applications
 

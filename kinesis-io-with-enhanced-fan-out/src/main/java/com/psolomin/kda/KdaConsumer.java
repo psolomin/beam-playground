@@ -1,7 +1,8 @@
 package com.psolomin.kda;
 
-import com.psolomin.consumer.LoggerParDo;
+import com.psolomin.consumer.LogEventDeserializer;
 import com.psolomin.consumer.Main;
+import com.psolomin.consumer.PayloadExtractor;
 import org.apache.beam.runners.flink.FlinkPipelineOptions;
 import org.apache.beam.runners.flink.FlinkRunner;
 import org.apache.beam.sdk.Pipeline;
@@ -40,7 +41,8 @@ public class KdaConsumer {
                                 .withStreamName(options.getInputStream())
                                 .withConsumerArn(options.getConsumerArn())
                                 .withInitialPositionInStream(InitialPositionInStream.LATEST))
-                .apply("Print", ParDo.of(new LoggerParDo()));
+                .apply("Get payload", ParDo.of(new PayloadExtractor()))
+                .apply("Print", ParDo.of(new LogEventDeserializer()));
 
         p.run().waitUntilFinish();
     }
