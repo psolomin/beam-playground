@@ -1,3 +1,4 @@
 logs
 scripts/iam-policy.json
 output
+.env

@@ -46,6 +46,7 @@ def create_role_and_its_policies(
                 "Effect": "Allow",
                 "Action": [
                     "s3:Get*",
+                    "s3:Put",
                     "s3:List*"
                 ],
                 "Resource": [

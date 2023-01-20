@@ -1,25 +1,22 @@
 package com.psolomin.kda;
 
-import com.psolomin.consumer.LogEventDeserializer;
-import com.psolomin.consumer.Main;
-import com.psolomin.consumer.PayloadExtractor;
+import static com.psolomin.consumer.KinesisToFilePipeline.addPipelineSteps;
+
+import com.psolomin.consumer.ConsumerOpts;
 import org.apache.beam.runners.flink.FlinkPipelineOptions;
 import org.apache.beam.runners.flink.FlinkRunner;
 import org.apache.beam.sdk.Pipeline;
-import org.apache.beam.sdk.io.aws2.kinesis.KinesisIO;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
 import org.apache.beam.sdk.options.PipelineOptionsValidator;
-import org.apache.beam.sdk.transforms.ParDo;
 import org.apache.commons.lang3.ArrayUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import software.amazon.kinesis.common.InitialPositionInStream;
 
 public class KdaConsumer {
     public static final Logger LOG = LoggerFactory.getLogger(KdaConsumer.class);
     public static final String BEAM_APPLICATION_PROPERTIES = "ConsumerProperties";
 
-    public interface FlinkConsumerOpts extends Main.ConsumerOpts, FlinkPipelineOptions {}
+    public interface FlinkConsumerOpts extends ConsumerOpts, FlinkPipelineOptions {}
 
     public static void main(String[] args) {
         LOG.info("Starting application {}", args);
@@ -34,16 +31,7 @@ public class KdaConsumer {
 
         PipelineOptionsValidator.validate(KdaConsumer.FlinkConsumerOpts.class, options);
         Pipeline p = Pipeline.create(options);
-
-        p.apply(
-                        "Source",
-                        KinesisIO.read()
-                                .withStreamName(options.getInputStream())
-                                .withConsumerArn(options.getConsumerArn())
-                                .withInitialPositionInStream(InitialPositionInStream.LATEST))
-                .apply("Get payload", ParDo.of(new PayloadExtractor()))
-                .apply("Print", ParDo.of(new LogEventDeserializer()));
-
+        addPipelineSteps(p, options);
         p.run().waitUntilFinish();
     }
 }

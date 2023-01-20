@@ -1,5 +1,6 @@
 import argparse
-from typing import Optional
+from dataclasses import dataclass
+from typing import Optional, Dict, Any
 
 import boto3
 import logging
@@ -39,21 +40,22 @@ def producer_properties(region: str, stream: str):
     }
 
 
-def consumer_properties(region: str, stream: str, consumer_arn: Optional[str]):
+def consumer_properties(region: str, stream: str, sink_location: str, consumer_arn: Optional[str]):
     return {
         "PropertyGroupId": "ConsumerProperties",
         "PropertyMap": {
             "AwsRegion": region,
             "InputStream": stream,
-            "ConsumerArn": consumer_arn
+            "ConsumerArn": consumer_arn,
+            "SinkLocation": sink_location
         }
     }
 
 
-def name_to_props(region: str, name: str, stream: str, consumer_arn: Optional[str] = None):
+def name_to_props(region: str, name: str, stream: str, sink_location: str, consumer_arn: Optional[str] = None):
     d = {
         "Producer": producer_properties(region, stream),
-        "Consumer": consumer_properties(region, stream, consumer_arn)
+        "Consumer": consumer_properties(region, stream, sink_location, consumer_arn)
     }
     return d[name]
 
@@ -69,7 +71,10 @@ def create_or_update_app(
         app_artifact_path: str,
 ):
     bucket_arn = f"arn:aws:s3:::{s3_bucket}"
-    app_cli_args = {"PropertyGroups": [name_to_props(region, name, stream, consumer_arn)]}
+    sink_location = f"s3://{s3_bucket}/output"
+    app_cli_args = {"PropertyGroups": [
+        name_to_props(region, name, stream, sink_location, consumer_arn)
+    ]}
     configuration = {
         "FlinkApplicationConfiguration": {
             "CheckpointConfiguration": {
@@ -101,7 +106,7 @@ def create_or_update_app(
             "CodeContentType": "ZIPFILE"
         },
         "ApplicationSnapshotConfiguration": {
-            "SnapshotsEnabled": True
+            "SnapshotsEnabled": name == "Consumer"
         }
     }
     apps_list = client.list_applications(Limit=20)["ApplicationSummaries"]

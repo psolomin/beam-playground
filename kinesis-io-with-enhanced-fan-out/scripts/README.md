@@ -42,3 +42,9 @@ python kda_app.py \
   --jar-local-path ../target \
   --jar-s3-path artifacts
 ```
+
+Clean previous output
+
+```
+aws s3 rm s3://$S3_BUCKET/output/*
+```
