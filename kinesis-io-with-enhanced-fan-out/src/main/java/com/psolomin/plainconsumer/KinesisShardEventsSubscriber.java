@@ -1,7 +1,11 @@
 package com.psolomin.plainconsumer;
 
+import com.psolomin.plainconsumer.signals.ErrorShardEvent;
+import com.psolomin.plainconsumer.signals.ReShardEvent;
+import com.psolomin.plainconsumer.signals.RecordsShardEvent;
+import com.psolomin.plainconsumer.signals.ShardEvent;
 import com.psolomin.plainconsumer.signals.ShardEventType;
-import com.psolomin.plainconsumer.signals.ShardEventWrapper;
+import com.psolomin.plainconsumer.signals.SubscriptionCompleteShardEvent;
 import java.util.concurrent.CountDownLatch;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.reactivestreams.Subscriber;
@@ -51,14 +55,18 @@ class KinesisShardEventsSubscriber implements Subscriber<SubscribeToShardEventSt
         subscribeToShardEventStream.accept(new SubscribeToShardResponseHandler.Visitor() {
             @Override
             public void visit(SubscribeToShardEvent event) {
-                enqueueEvent(ShardEventWrapper.fromNext(shardId, event));
+                if (!ReShardEvent.isReShard(event)) {
+                    pushEvent(RecordsShardEvent.fromNext(streamName, shardId, event));
+                } else {
+                    pushEvent(ReShardEvent.fromNext(shardId, event));
+                }
             }
         });
     }
 
     @Override
     public void onError(Throwable throwable) {
-        enqueueEvent(ShardEventWrapper.error(shardId, throwable));
+        pushEvent(ErrorShardEvent.fromErr(shardId, throwable));
         cancel();
     }
 
@@ -72,7 +80,7 @@ class KinesisShardEventsSubscriber implements Subscriber<SubscribeToShardEventSt
     @Override
     public void onComplete() {
         LOG.info(LOG_MSG_TEMPLATE + " Complete", streamName, shardId, consumerArn);
-        enqueueEvent(ShardEventWrapper.subscriptionComplete(shardId));
+        pushEvent(SubscriptionCompleteShardEvent.create(shardId));
     }
 
     void requestRecords(long n) {
@@ -92,7 +100,7 @@ class KinesisShardEventsSubscriber implements Subscriber<SubscribeToShardEventSt
         }
     }
 
-    private void enqueueEvent(ShardEventWrapper event) {
+    private void pushEvent(ShardEvent event) {
         LOG.info("Got event {}", event);
         if (cancelled) {
             return;
@@ -102,7 +110,7 @@ class KinesisShardEventsSubscriber implements Subscriber<SubscribeToShardEventSt
             if (!decommissioned) {
                 pool.handleEvent(event);
             }
-            if (event.type().equals(ShardEventType.RE_SHARD)) {
+            if (event.getType().equals(ShardEventType.RE_SHARD)) {
                 decommissioned = true;
             }
         } catch (InterruptedException e) {
