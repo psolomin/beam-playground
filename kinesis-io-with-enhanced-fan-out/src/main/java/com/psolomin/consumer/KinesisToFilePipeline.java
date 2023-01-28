@@ -37,7 +37,7 @@ public class KinesisToFilePipeline {
                         "Source",
                         KinesisIO.read()
                                 .withStreamName(opts.getInputStream())
-                                // .withConsumerArn(opts.getConsumerArn())
+                                .withConsumerArn(opts.getConsumerArn())
                                 .withInitialPositionInStream(InitialPositionInStream.LATEST)
                                 .withProcessingTimeWatermarkPolicy())
                 .apply(

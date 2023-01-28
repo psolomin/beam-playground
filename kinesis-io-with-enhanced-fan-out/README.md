@@ -15,6 +15,9 @@ export AWS_REGION=<your region>
 export S3_BUCKET=<your artifacts bucket>
 export STREAM=stream-01
 export ROLE=BeamKdaAppRole
+
+# alternative - create a .env file with vars and export it:
+export $(cat .env | xargs)
 ```
 
 ## Build
