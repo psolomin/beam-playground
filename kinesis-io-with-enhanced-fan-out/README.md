@@ -86,7 +86,7 @@ mvn package -DskipTests \
 	-Dapp.main.class=com.psolomin.plainproducer.Main
 
 java -jar target/example-com.psolomin.plainproducer.Main-bundled-0.1-SNAPSHOT.jar \
-	$STREAM 10 5000
+	$STREAM 10 3000 # 5 minutes
 ```
 
 ## Run Consumer
@@ -100,8 +100,8 @@ mvn package -DskipTests \
 java -jar target/example-com.psolomin.consumer.Main-bundled-0.1-SNAPSHOT.jar \
 	--inputStream=$STREAM \
 	--sinkLocation=$(pwd)/output \
-	--consumerArn=arn:aws:kinesis:"$AWS_REGION":"$AWS_ACCOUNT":stream/"$STREAM"/consumer/consumer-01:1665959636 \
-	--awsRegion=$AWS_REGION
+	--awsRegion=$AWS_REGION \
+	--consumerArn=arn:aws:kinesis:"$AWS_REGION":"$AWS_ACCOUNT":stream/"$STREAM"/consumer/consumer-01:1665959636
 
 ```
 

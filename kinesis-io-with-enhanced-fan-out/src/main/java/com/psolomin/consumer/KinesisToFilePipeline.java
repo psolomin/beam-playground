@@ -33,13 +33,18 @@ public class KinesisToFilePipeline {
     }
 
     public static void addPipelineSteps(Pipeline p, ConsumerOpts opts) {
-        PCollection<KinesisRecord> windowedRecords = p.apply(
-                        "Source",
-                        KinesisIO.read()
-                                .withStreamName(opts.getInputStream())
-                                .withConsumerArn(opts.getConsumerArn())
-                                .withInitialPositionInStream(InitialPositionInStream.LATEST)
-                                .withProcessingTimeWatermarkPolicy())
+        String consumerArn = opts.getConsumerArn();
+
+        KinesisIO.Read reader = KinesisIO.read()
+                .withStreamName(opts.getInputStream())
+                .withInitialPositionInStream(InitialPositionInStream.LATEST)
+                .withProcessingTimeWatermarkPolicy();
+
+        if (!consumerArn.equals("none")) {
+            reader = reader.withConsumerArn(consumerArn);
+        }
+
+        PCollection<KinesisRecord> windowedRecords = p.apply("Source", reader)
                 .apply(
                         "Fixed windows",
                         Window.<KinesisRecord>into(FixedWindows.of(Duration.standardSeconds(60)))

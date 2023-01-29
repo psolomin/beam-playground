@@ -48,3 +48,12 @@ Clean previous output
 ```
 aws s3 rm s3://$S3_BUCKET/output/*
 ```
+
+Check output:
+
+```
+output_dir =
+df = spark.read.parquet(output_dir)
+df.count()
+df.distinct().count()
+```
