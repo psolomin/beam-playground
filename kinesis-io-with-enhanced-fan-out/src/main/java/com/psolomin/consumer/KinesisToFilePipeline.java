@@ -6,6 +6,8 @@ import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.coders.AvroCoder;
 import org.apache.beam.sdk.io.FileIO;
 import org.apache.beam.sdk.io.WriteFilesResult;
+import org.apache.beam.sdk.io.aws2.common.ClientConfiguration;
+import org.apache.beam.sdk.io.aws2.common.RetryConfiguration;
 import org.apache.beam.sdk.io.aws2.kinesis.KinesisIO;
 import org.apache.beam.sdk.io.aws2.kinesis.KinesisRecord;
 import org.apache.beam.sdk.io.parquet.ParquetIO;
@@ -34,10 +36,16 @@ public class KinesisToFilePipeline {
 
     public static void addPipelineSteps(Pipeline p, ConsumerOpts opts) {
         String consumerArn = opts.getConsumerArn();
+        ClientConfiguration clientConfiguration = ClientConfiguration.builder()
+                .retry(RetryConfiguration.builder()
+                        .numRetries(10)
+                        .build())
+                .build();
 
         KinesisIO.Read reader = KinesisIO.read()
                 .withStreamName(opts.getInputStream())
                 .withInitialPositionInStream(InitialPositionInStream.LATEST)
+                .withClientConfiguration(clientConfiguration)
                 .withProcessingTimeWatermarkPolicy();
 
         if (!consumerArn.equals("none")) {

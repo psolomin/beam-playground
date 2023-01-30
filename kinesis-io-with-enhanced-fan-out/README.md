@@ -101,7 +101,8 @@ java -jar target/example-com.psolomin.consumer.Main-bundled-0.1-SNAPSHOT.jar \
 	--inputStream=$STREAM \
 	--sinkLocation=$(pwd)/output \
 	--awsRegion=$AWS_REGION \
-	--consumerArn=arn:aws:kinesis:"$AWS_REGION":"$AWS_ACCOUNT":stream/"$STREAM"/consumer/consumer-01:1665959636
+	--consumerArn=arn:aws:kinesis:"$AWS_REGION":"$AWS_ACCOUNT":stream/"$STREAM"/consumer/consumer-01:1665959636 \
+	| tee log.txt
 
 ```
 
