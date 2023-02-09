@@ -4,12 +4,18 @@ Install:
 
 ```
 pip install -r requirements.txt
+
+export JAVA_HOME=<your jdk location>
 export AWS_ACCOUNT=<your account id>
 export AWS_PROFILE=<your profile>
 export AWS_REGION=<your region>
 export S3_BUCKET=<your artifacts bucket>
 export STREAM=stream-01
 export ROLE=BeamKdaAppRole
+export CONSUMER_ARN=<your EFO consumer ARN>
+
+# alternative - create a .env file with vars and export it:
+export $(cat .env | xargs)
 ```
 
 (Re-) Create IAM role and policy
@@ -37,7 +43,7 @@ Create KDA consumer app
 python kda_app.py \
   --region $AWS_REGION --role $ROLE --app-name Consumer --bucket $S3_BUCKET \
   --stream $STREAM \
-  --consumer-arn arn:aws:kinesis:"$AWS_REGION":"$AWS_ACCOUNT":stream/"$STREAM"/consumer/consumer-01:1665959636 \
+  --consumer-arn $CONSUMER_ARN \
   --jar-name example-com.psolomin.kda.KdaConsumer-bundled-0.1-SNAPSHOT.jar \
   --jar-local-path ../target \
   --jar-s3-path artifacts

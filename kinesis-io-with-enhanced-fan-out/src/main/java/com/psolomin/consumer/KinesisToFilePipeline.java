@@ -38,6 +38,7 @@ public class KinesisToFilePipeline {
         String consumerArn = opts.getConsumerArn();
         ClientConfiguration clientConfiguration = ClientConfiguration.builder()
                 .retry(RetryConfiguration.builder()
+                        .baseBackoff(Duration.standardSeconds(3))
                         .numRetries(10)
                         .build())
                 .build();

@@ -15,6 +15,7 @@ export AWS_REGION=<your region>
 export S3_BUCKET=<your artifacts bucket>
 export STREAM=stream-01
 export ROLE=BeamKdaAppRole
+export CONSUMER_ARN=<your EFO consumer ARN>
 
 # alternative - create a .env file with vars and export it:
 export $(cat .env | xargs)
@@ -49,7 +50,7 @@ aws kinesis create-stream --stream-name $STREAM \
 	--stream-mode-details=StreamMode=PROVISIONED
 
 aws kinesis register-stream-consumer \
-	--stream-arn arn:aws:kinesis:{AWS_REGION}:${ACCOUNT_ID}:stream/$STREAM \
+	--stream-arn arn:aws:kinesis:${AWS_REGION}:${AWS_ACCOUNT}:stream/$STREAM \
 	--consumer-name consumer-01
 ```
 
@@ -101,7 +102,7 @@ java -jar target/example-com.psolomin.consumer.Main-bundled-0.1-SNAPSHOT.jar \
 	--inputStream=$STREAM \
 	--sinkLocation=$(pwd)/output \
 	--awsRegion=$AWS_REGION \
-	--consumerArn=arn:aws:kinesis:"$AWS_REGION":"$AWS_ACCOUNT":stream/"$STREAM"/consumer/consumer-01:1665959636 \
+	--consumerArn=$CONSUMER_ARN \
 	| tee log.txt
 
 ```
