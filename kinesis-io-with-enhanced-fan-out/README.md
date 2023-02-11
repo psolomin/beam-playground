@@ -1,5 +1,18 @@
 # Kinesis IO with Enhanced Fan-Out
 
+This project is used for testing Kinesis connector of Apache Beam. Testing was done with:
+
+- Direct runner
+- Flink runner (with toy Flink cluster in Docker)
+- Kinesis Data Analytics ("serverless" Flink)
+
+Testing approach consisted of the following:
+
+1. start consumer with file sink (parquet)
+2. start producer with known output records
+3. (optionally) do re-shards, app restart, app start at some timestamp, etc
+4. check file sink outputs (with `pyspark`)
+
 ## Requirements
 
 ```
@@ -59,7 +72,7 @@ Delete consumer and stream:
 
 ```
 aws kinesis deregister-stream-consumer \
-	--stream-arn arn:aws:kinesis:{AWS_REGION}:${ACCOUNT_ID}:stream/$STREAM \
+	--stream-arn arn:aws:kinesis:${AWS_REGION}:${AWS_ACCOUNT}:stream/$STREAM \
 	--consumer-name consumer-01
 
 aws kinesis delete-stream $STREAM
@@ -124,3 +137,49 @@ mvn package -Pkda -DskipTests \
 Create KDA app
 
 Check [scripts instructions](./scripts/README.md) for that
+
+## Vanilla Flink
+
+This was tested with Docker engine 20.10.22. Older Docker engines may yield errors.
+
+Build artefact
+
+```
+mvn package -Pflink -DskipTests \
+	-Dapp.main.class=com.psolomin.flink.FlinkConsumer
+```
+
+Start toy cluster
+
+```
+docker-compose up --build -d flink-tm
+```
+
+Submit Flink job
+
+```
+docker exec -u flink -it kinesis-io-with-enhanced-fan-out-flink-jm-1 flink run \
+  --class com.psolomin.flink.FlinkConsumer --detached \
+  /mnt/artifacts/example-com.psolomin.flink.FlinkConsumer-bundled-0.1-SNAPSHOT.jar \
+  --awsRegion=eu-west-1 \
+  --inputStream=stream-01 \
+  --consumerArn=$CONSUMER_ARN \
+  --autoWatermarkInterval=10000 \
+  --sinkLocation=/mnt/output \
+  --externalizedCheckpointsEnabled=true \
+  --checkpointingMode=EXACTLY_ONCE \
+  --numConcurrentCheckpoints=1 \
+  --checkpointTimeoutMillis=120000 \
+  --checkpointingInterval=60000 \
+  --minPauseBetweenCheckpoints=5000 \
+  --parallelism=2 \
+  --stateBackend=rocksdb \
+  --stateBackendStoragePath=file:///tmp/flink-state
+
+```
+
+Stop cluster
+
+```
+docker-compose down -v
+```
