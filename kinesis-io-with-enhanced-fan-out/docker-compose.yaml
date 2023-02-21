@@ -2,7 +2,8 @@ version: '3.8'
 
 services:
   flink-jm:
-    image: flink:1.15.2-scala_2.12-java11
+    build:
+      context: .
     ports:
       - "8081:8081"
       - "5005:5005"
@@ -21,7 +22,8 @@ services:
       - jobmanager
 
   flink-tm:
-    image: flink:1.15.2-scala_2.12-java11
+    build:
+      context: .
     depends_on:
       - flink-jm
     ports:

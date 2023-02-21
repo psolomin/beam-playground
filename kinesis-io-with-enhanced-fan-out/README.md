@@ -10,7 +10,12 @@ Testing approach consisted of the following:
 
 1. start consumer with file sink (parquet)
 2. start producer with known output records
-3. (optionally) do re-shards, app restart, app start at some timestamp, etc
+3. (optionally)
+   - re-shard Kinesis stream
+   - app kill and start from savepoint
+   - app start at some timestamp
+   - run with increased network latency (via `tc`)
+   - run with artificial "slow" processor (see `processTimePerRecord` cmd argument)
 4. check file sink outputs (with `pyspark`)
 
 ## Requirements
@@ -155,6 +160,13 @@ Start toy cluster
 docker-compose up --build -d flink-tm
 ```
 
+Simulating networking issues (optional)
+
+```
+docker exec --privileged kinesis-io-with-enhanced-fan-out-flink-tm-1 \
+  tc qdisc add dev eth0 root netem delay 300ms
+```
+
 Submit Flink job
 
 ```
@@ -166,6 +178,7 @@ docker exec -u flink -it kinesis-io-with-enhanced-fan-out-flink-jm-1 flink run \
   --consumerArn=$CONSUMER_ARN \
   --autoWatermarkInterval=10000 \
   --sinkLocation=/mnt/output \
+  --processTimePerRecord=0 \
   --externalizedCheckpointsEnabled=true \
   --checkpointingMode=EXACTLY_ONCE \
   --numConcurrentCheckpoints=1 \

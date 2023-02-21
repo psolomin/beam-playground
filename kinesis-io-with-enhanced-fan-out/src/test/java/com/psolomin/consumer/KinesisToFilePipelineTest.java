@@ -38,13 +38,16 @@ public class KinesisToFilePipelineTest {
         producerOpts.setMsgsToWrite(3);
         producerOpts.setOutputStream("stream-01");
 
+        ConsumerOpts consumerOpts = PipelineOptionsFactory.create().as(ConsumerOpts.class);
+        consumerOpts.setSinkLocation(path);
+
         PCollection<KinesisRecord> records = buildProducerP(writerP, producerOpts)
                 .apply(
                         "KinesisRecords",
                         MapElements.into(TypeDescriptor.of(KinesisRecord.class)).via(new BytesToKinesisRecord()))
                 .setCoder(KinesisRecordCoder.of());
 
-        KinesisToFilePipeline.write(records, path);
+        KinesisToFilePipeline.write(records, consumerOpts);
         writerP.run();
 
         PCollection<Long> recordsFromFiles = readerP.apply(

@@ -1,6 +1,7 @@
 package com.psolomin.consumer;
 
 import org.apache.beam.sdk.io.aws2.options.AwsOptions;
+import org.apache.beam.sdk.options.Default;
 import org.apache.beam.sdk.options.Description;
 import org.apache.beam.sdk.options.PipelineOptions;
 import org.apache.beam.sdk.options.Validation;
@@ -23,4 +24,10 @@ public interface ConsumerOpts extends PipelineOptions, AwsOptions {
     String getSinkLocation();
 
     void setSinkLocation(String value);
+
+    @Default.Long(0L)
+    @Description("Artificial 'processing' time to simulate back-pressure etc")
+    Long getProcessTimePerRecord();
+
+    void setProcessTimePerRecord(Long value);
 }

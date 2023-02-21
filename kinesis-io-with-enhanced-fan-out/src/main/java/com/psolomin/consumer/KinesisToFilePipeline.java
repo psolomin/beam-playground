@@ -22,15 +22,16 @@ import org.joda.time.Duration;
 import software.amazon.kinesis.common.InitialPositionInStream;
 
 public class KinesisToFilePipeline {
-    public static WriteFilesResult<Void> write(PCollection<KinesisRecord> records, String sinkLocation) {
+    public static WriteFilesResult<Void> write(PCollection<KinesisRecord> records, ConsumerOpts opts) {
         return records.apply("Get payloads", ParDo.of(new PayloadExtractor()))
+                .apply("Process payloads", ParDo.of(new SlowProcessor(opts.getProcessTimePerRecord())))
                 .apply("Parse payloads", ParDo.of(new LogEventDeserializer()))
                 .setCoder(AvroCoder.of(GenericRecord.class, LogEvent.SCHEMA$))
                 .apply(
                         "Sink to S3",
                         FileIO.<GenericRecord>write()
                                 .via(ParquetIO.sink(LogEvent.SCHEMA$).withCompressionCodec(CompressionCodecName.SNAPPY))
-                                .to(sinkLocation)
+                                .to(opts.getSinkLocation())
                                 .withNaming(new NoColonFileNaming()));
     }
 
@@ -62,6 +63,6 @@ public class KinesisToFilePipeline {
                                 .triggering(Repeatedly.forever(AfterProcessingTime.pastFirstElementInPane()
                                         .plusDelayOf(Duration.standardSeconds(60)))));
 
-        KinesisToFilePipeline.write(windowedRecords, opts.getSinkLocation());
+        KinesisToFilePipeline.write(windowedRecords, opts);
     }
 }
