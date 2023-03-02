@@ -15,6 +15,9 @@ services:
         FLINK_PROPERTIES=
         jobmanager.rpc.address: flink-jm
         env.log.dir: /tmp/flink-logs
+        restart-strategy: fixed-delay
+        restart-strategy.fixed-delay.attempts: 5
+        restart-strategy.fixed-delay.delay: 10 s
     volumes:
       - ./target:/mnt/artifacts:ro
       - ${HOME}/.aws/credentials:/opt/flink/.aws/credentials:ro
