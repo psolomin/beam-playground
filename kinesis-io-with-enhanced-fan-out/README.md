@@ -178,7 +178,7 @@ docker exec -u flink -it kinesis-io-with-enhanced-fan-out-flink-jm-1 flink run \
   --consumerArn=$CONSUMER_ARN \
   --autoWatermarkInterval=10000 \
   --sinkLocation=/mnt/output \
-  --processTimePerRecord=0 \
+  --processTimePerRecord=6000 \
   --externalizedCheckpointsEnabled=true \
   --checkpointingMode=EXACTLY_ONCE \
   --numConcurrentCheckpoints=1 \
