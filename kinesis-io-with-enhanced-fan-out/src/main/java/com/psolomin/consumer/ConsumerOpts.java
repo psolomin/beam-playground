@@ -30,4 +30,10 @@ public interface ConsumerOpts extends PipelineOptions, AwsOptions {
     Long getProcessTimePerRecord();
 
     void setProcessTimePerRecord(Long value);
+
+    @Default.Integer(0)
+    @Description("The pipeline will fail after consuming every N records. 0 means never fail")
+    Integer getFailAfterRecordsSeenCnt();
+
+    void setFailAfterRecordsSeenCnt(Integer value);
 }

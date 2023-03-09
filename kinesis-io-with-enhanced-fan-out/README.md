@@ -11,11 +11,12 @@ Testing approach consisted of the following:
 1. start consumer with file sink (parquet)
 2. start producer with known output records
 3. (optionally)
-   - re-shard Kinesis stream
-   - app kill and start from savepoint
-   - app start at some timestamp
-   - run with increased network latency (via `tc`)
-   - run with artificial "slow" processor (see `processTimePerRecord` cmd argument)
+	- re-shard Kinesis stream
+	- app kill and start from savepoint
+	- app start at some timestamp
+	- run with increased network latency (via `tc`)
+	- run with artificial "slow" processor (see `processTimePerRecord` cmd argument)
+	- run with a sometimes-failing processor (see `failAfterRecordsSeenCnt` cmd argument)
 4. check file sink outputs (with `pyspark`)
 
 ## Requirements
@@ -164,30 +165,31 @@ Simulating networking issues (optional)
 
 ```
 docker exec --privileged kinesis-io-with-enhanced-fan-out-flink-tm-1 \
-  tc qdisc add dev eth0 root netem delay 300ms
+	tc qdisc add dev eth0 root netem delay 300ms
 ```
 
 Submit Flink job
 
 ```
 docker exec -u flink -it kinesis-io-with-enhanced-fan-out-flink-jm-1 flink run \
-  --class com.psolomin.flink.FlinkConsumer --detached \
-  /mnt/artifacts/example-com.psolomin.flink.FlinkConsumer-bundled-0.1-SNAPSHOT.jar \
-  --awsRegion=eu-west-1 \
-  --inputStream=stream-01 \
-  --consumerArn=$CONSUMER_ARN \
-  --autoWatermarkInterval=10000 \
-  --sinkLocation=/mnt/output \
-  --processTimePerRecord=6000 \
-  --externalizedCheckpointsEnabled=true \
-  --checkpointingMode=EXACTLY_ONCE \
-  --numConcurrentCheckpoints=1 \
-  --checkpointTimeoutMillis=120000 \
-  --checkpointingInterval=60000 \
-  --minPauseBetweenCheckpoints=5000 \
-  --parallelism=2 \
-  --stateBackend=rocksdb \
-  --stateBackendStoragePath=file:///tmp/flink-state
+	--class com.psolomin.flink.FlinkConsumer --detached \
+	/mnt/artifacts/example-com.psolomin.flink.FlinkConsumer-bundled-0.1-SNAPSHOT.jar \
+	--awsRegion=eu-west-1 \
+	--inputStream=stream-01 \
+	--consumerArn=$CONSUMER_ARN \
+	--autoWatermarkInterval=10000 \
+	--sinkLocation=/mnt/output \
+	--processTimePerRecord=0 \
+	--failAfterRecordsSeenCnt=500 \
+	--externalizedCheckpointsEnabled=true \
+	--checkpointingMode=EXACTLY_ONCE \
+	--numConcurrentCheckpoints=1 \
+	--checkpointTimeoutMillis=500000 \
+	--checkpointingInterval=60000 \
+	--minPauseBetweenCheckpoints=5000 \
+	--parallelism=2 \
+	--stateBackend=rocksdb \
+	--stateBackendStoragePath=file:///tmp/flink-state
 
 ```
 

@@ -25,6 +25,7 @@ public class KinesisToFilePipeline {
     public static WriteFilesResult<Void> write(PCollection<KinesisRecord> records, ConsumerOpts opts) {
         return records.apply("Get payloads", ParDo.of(new PayloadExtractor()))
                 .apply("Process payloads", ParDo.of(new SlowProcessor(opts.getProcessTimePerRecord())))
+                .apply("Maybe fail", ParDo.of(new FailingProcessor(opts.getFailAfterRecordsSeenCnt())))
                 .apply("Parse payloads", ParDo.of(new LogEventDeserializer()))
                 .setCoder(AvroCoder.of(GenericRecord.class, LogEvent.SCHEMA$))
                 .apply(

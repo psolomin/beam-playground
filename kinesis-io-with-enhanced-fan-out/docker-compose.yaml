@@ -16,7 +16,7 @@ services:
         jobmanager.rpc.address: flink-jm
         env.log.dir: /tmp/flink-logs
         restart-strategy: fixed-delay
-        restart-strategy.fixed-delay.attempts: 5
+        restart-strategy.fixed-delay.attempts: 15
         restart-strategy.fixed-delay.delay: 10 s
     volumes:
       - ./target:/mnt/artifacts:ro
