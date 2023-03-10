@@ -13,11 +13,17 @@ public interface ConsumerOpts extends PipelineOptions, AwsOptions {
 
     void setInputStream(String value);
 
-    @Validation.Required
+    @Default.String("none")
     @Description("Kinesis consumer to use")
     String getConsumerArn();
 
     void setConsumerArn(String value);
+
+    @Default.String("LATEST")
+    @Description("Start mode for Kinesis consumer - LATEST, etc")
+    String getStartMode();
+
+    void setStartMode(String value);
 
     @Validation.Required
     @Description("File sink location path")

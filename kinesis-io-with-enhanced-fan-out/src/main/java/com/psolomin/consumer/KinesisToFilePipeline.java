@@ -3,7 +3,7 @@ package com.psolomin.consumer;
 import com.psolomin.records.LogEvent;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.beam.sdk.Pipeline;
-import org.apache.beam.sdk.coders.AvroCoder;
+import org.apache.beam.sdk.extensions.avro.coders.AvroCoder;
 import org.apache.beam.sdk.io.FileIO;
 import org.apache.beam.sdk.io.WriteFilesResult;
 import org.apache.beam.sdk.io.aws2.common.ClientConfiguration;
@@ -45,10 +45,11 @@ public class KinesisToFilePipeline {
                         .build())
                 .build();
 
+        InitialPositionInStream positionInStream = fromConfig(opts.getStartMode());
         KinesisIO.Read reader = KinesisIO.read()
                 .withStreamName(opts.getInputStream())
-                .withInitialPositionInStream(InitialPositionInStream.LATEST)
                 .withClientConfiguration(clientConfiguration)
+                .withInitialPositionInStream(positionInStream)
                 .withProcessingTimeWatermarkPolicy();
 
         if (!consumerArn.equals("none")) {
@@ -65,5 +66,15 @@ public class KinesisToFilePipeline {
                                         .plusDelayOf(Duration.standardSeconds(60)))));
 
         KinesisToFilePipeline.write(windowedRecords, opts);
+    }
+
+    private static InitialPositionInStream fromConfig(String confOpt) {
+        if (confOpt.equals("LATEST")) {
+            return InitialPositionInStream.LATEST;
+        } else if (confOpt.equals("TRIM_HORIZON")) {
+            return InitialPositionInStream.TRIM_HORIZON;
+        } else {
+            throw new IllegalStateException("Not supported : " + confOpt);
+        }
     }
 }

@@ -180,7 +180,6 @@ docker exec -u flink -it kinesis-io-with-enhanced-fan-out-flink-jm-1 flink run \
 	--autoWatermarkInterval=10000 \
 	--sinkLocation=/mnt/output \
 	--processTimePerRecord=0 \
-	--failAfterRecordsSeenCnt=500 \
 	--externalizedCheckpointsEnabled=true \
 	--checkpointingMode=EXACTLY_ONCE \
 	--numConcurrentCheckpoints=1 \
@@ -191,6 +190,22 @@ docker exec -u flink -it kinesis-io-with-enhanced-fan-out-flink-jm-1 flink run \
 	--stateBackend=rocksdb \
 	--stateBackendStoragePath=file:///tmp/flink-state
 
+```
+
+Stop with a savepoint:
+
+```
+docker exec -u flink -it kinesis-io-with-enhanced-fan-out-flink-jm-1 bin/flink stop \
+	--savepointPath file:///tmp/savepoints/pt0 \
+	b1a47ebde1a0bc39e501c722b6ec4f43
+```
+
+Start with a savepoint:
+
+```
+docker exec -u flink -it kinesis-io-with-enhanced-fan-out-flink-jm-1 flink run \
+	-s file:///tmp/savepoints/pt0/savepoint-b1a47e-7f26e2a42e98 \
+	...
 ```
 
 Stop cluster
