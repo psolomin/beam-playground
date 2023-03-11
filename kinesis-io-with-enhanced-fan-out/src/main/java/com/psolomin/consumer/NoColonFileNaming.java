@@ -10,7 +10,11 @@ import org.checkerframework.checker.nullness.qual.NonNull;
  * Spark and parquet-tools don't like : symbol in file names.
  */
 public class NoColonFileNaming implements FileIO.Write.FileNaming {
-    private final FileIO.Write.FileNaming defaultNaming = FileIO.Write.defaultNaming("out", ".parquet");
+    private final FileIO.Write.FileNaming defaultNaming;
+
+    public NoColonFileNaming(String runId) {
+        this.defaultNaming = FileIO.Write.defaultNaming("out-" + runId, ".parquet");
+    }
 
     @Override
     @NonNull

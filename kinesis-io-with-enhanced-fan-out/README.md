@@ -179,14 +179,12 @@ docker exec -u flink -it kinesis-io-with-enhanced-fan-out-flink-jm-1 flink run \
 	--consumerArn=$CONSUMER_ARN \
 	--autoWatermarkInterval=10000 \
 	--sinkLocation=/mnt/output \
-	--processTimePerRecord=0 \
 	--externalizedCheckpointsEnabled=true \
 	--checkpointingMode=EXACTLY_ONCE \
 	--numConcurrentCheckpoints=1 \
 	--checkpointTimeoutMillis=500000 \
 	--checkpointingInterval=60000 \
 	--minPauseBetweenCheckpoints=5000 \
-	--parallelism=2 \
 	--stateBackend=rocksdb \
 	--stateBackendStoragePath=file:///tmp/flink-state
 
@@ -197,14 +195,14 @@ Stop with a savepoint:
 ```
 docker exec -u flink -it kinesis-io-with-enhanced-fan-out-flink-jm-1 bin/flink stop \
 	--savepointPath file:///tmp/savepoints/pt0 \
-	b1a47ebde1a0bc39e501c722b6ec4f43
+	6e52e8c0c13752334480979513a37543
 ```
 
 Start with a savepoint:
 
 ```
 docker exec -u flink -it kinesis-io-with-enhanced-fan-out-flink-jm-1 flink run \
-	-s file:///tmp/savepoints/pt0/savepoint-b1a47e-7f26e2a42e98 \
+	-s file:///tmp/savepoints/pt0/savepoint-6e52e8-5124a3d41f97 \
 	...
 ```
 

@@ -12,17 +12,17 @@ import org.apache.beam.sdk.io.aws2.kinesis.KinesisIO;
 import org.apache.beam.sdk.io.aws2.kinesis.KinesisRecord;
 import org.apache.beam.sdk.io.parquet.ParquetIO;
 import org.apache.beam.sdk.transforms.ParDo;
-import org.apache.beam.sdk.transforms.windowing.AfterProcessingTime;
 import org.apache.beam.sdk.transforms.windowing.FixedWindows;
-import org.apache.beam.sdk.transforms.windowing.Repeatedly;
 import org.apache.beam.sdk.transforms.windowing.Window;
 import org.apache.beam.sdk.values.PCollection;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.parquet.hadoop.metadata.CompressionCodecName;
 import org.joda.time.Duration;
 import software.amazon.kinesis.common.InitialPositionInStream;
 
 public class KinesisToFilePipeline {
     public static WriteFilesResult<Void> write(PCollection<KinesisRecord> records, ConsumerOpts opts) {
+        String runId = RandomStringUtils.randomAlphabetic(5);
         return records.apply("Get payloads", ParDo.of(new PayloadExtractor()))
                 .apply("Process payloads", ParDo.of(new SlowProcessor(opts.getProcessTimePerRecord())))
                 .apply("Maybe fail", ParDo.of(new FailingProcessor(opts.getFailAfterRecordsSeenCnt())))
@@ -33,7 +33,7 @@ public class KinesisToFilePipeline {
                         FileIO.<GenericRecord>write()
                                 .via(ParquetIO.sink(LogEvent.SCHEMA$).withCompressionCodec(CompressionCodecName.SNAPPY))
                                 .to(opts.getSinkLocation())
-                                .withNaming(new NoColonFileNaming()));
+                                .withNaming(new NoColonFileNaming(runId)));
     }
 
     public static void addPipelineSteps(Pipeline p, ConsumerOpts opts) {
@@ -57,13 +57,7 @@ public class KinesisToFilePipeline {
         }
 
         PCollection<KinesisRecord> windowedRecords = p.apply("Source", reader)
-                .apply(
-                        "Fixed windows",
-                        Window.<KinesisRecord>into(FixedWindows.of(Duration.standardSeconds(60)))
-                                .withAllowedLateness(Duration.ZERO)
-                                .discardingFiredPanes()
-                                .triggering(Repeatedly.forever(AfterProcessingTime.pastFirstElementInPane()
-                                        .plusDelayOf(Duration.standardSeconds(60)))));
+                .apply("Fixed windows", Window.<KinesisRecord>into(FixedWindows.of(Duration.standardSeconds(60))));
 
         KinesisToFilePipeline.write(windowedRecords, opts);
     }
