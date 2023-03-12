@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  flink-jm:
+    build:
+      context: .
+    ports:
+      - "8081:8081"
+      - "5005:5005"
+    environment:
+      - AWS_PROFILE=${AWS_PROFILE}
+      - AWS_REGION=eu-west-1
+      - CONSUMER_ARN=${CONSUMER_ARN}
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: flink-jm
+        env.log.dir: /tmp/flink-logs
+        restart-strategy: fixed-delay
+        restart-strategy.fixed-delay.attempts: 15
+        restart-strategy.fixed-delay.delay: 10 s
+    volumes:
+      - ./target:/mnt/artifacts:ro
+      - ${HOME}/.aws/credentials:/opt/flink/.aws/credentials:ro
+    command:
+      - jobmanager
+
+  flink-tm:
+    build:
+      context: .
+    depends_on:
+      - flink-jm
+    ports:
+      - "5006:5006"
+    environment:
+      - AWS_PROFILE=${AWS_PROFILE}
+      - AWS_REGION=eu-west-1
+      - CONSUMER_ARN=${CONSUMER_ARN}
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: flink-jm
+        taskmanager.numberOfTaskSlots: 4
+        env.log.dir: /tmp/flink-logs
+    volumes:
+      - ./output:/mnt/output
+      - ${HOME}/.aws/credentials:/opt/flink/.aws/credentials:ro
+    command:
+      - taskmanager

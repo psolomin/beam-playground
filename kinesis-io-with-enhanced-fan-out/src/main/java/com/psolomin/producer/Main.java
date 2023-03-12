@@ -2,13 +2,9 @@ package com.psolomin.producer;
 
 import static com.psolomin.producer.Producer.buildProducerP;
 
-import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
-import com.amazonaws.regions.Regions;
-import java.util.Arrays;
 import org.apache.beam.sdk.Pipeline;
-import org.apache.beam.sdk.io.aws.options.AwsOptions;
-import org.apache.beam.sdk.io.kinesis.KinesisIO;
-import org.apache.beam.sdk.io.kinesis.KinesisPartitioner;
+import org.apache.beam.sdk.io.aws2.kinesis.KinesisIO;
+import org.apache.beam.sdk.io.aws2.options.AwsOptions;
 import org.apache.beam.sdk.options.Description;
 import org.apache.beam.sdk.options.PipelineOptions;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
@@ -36,30 +32,16 @@ public class Main {
         void setMsgsPerSec(Integer value);
     }
 
-    private static final class RandomPartitioner implements KinesisPartitioner {
-        @Override
-        public String getPartitionKey(byte[] value) {
-            return String.valueOf(Arrays.hashCode(value));
-        }
-
-        @Override
-        public String getExplicitHashKey(byte[] value) {
-            return null;
-        }
-    }
-
     public static void main(String[] args) {
         ProducerOpts opts = PipelineOptionsFactory.fromArgs(args).as(ProducerOpts.class);
         PipelineOptionsValidator.validate(ProducerOpts.class, opts);
         Pipeline p = Pipeline.create(opts);
 
-        buildProducerP(p, opts).apply(KinesisIO.write()
-            .withStreamName(opts.getOutputStream())
-            .withPartitioner(new RandomPartitioner())
-            .withAWSClientsProvider(
-                    DefaultAWSCredentialsProviderChain.getInstance(),
-                    Regions.fromName(opts.getAwsRegion())
-            ));
+        buildProducerP(p, opts)
+                .apply(KinesisIO.<byte[]>write()
+                        .withStreamName(opts.getOutputStream())
+                        .withSerializer(r -> r)
+                        .withPartitioner(new RandomPartitioner()));
 
         p.run().waitUntilFinish();
     }

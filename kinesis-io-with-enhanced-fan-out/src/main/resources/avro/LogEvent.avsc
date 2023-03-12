@@ -1,0 +1,8 @@
+{
+  "namespace": "com.psolomin.records",
+  "type": "record",
+  "name": "LogEvent",
+  "fields": [
+    {"name": "id", "type": "long"}
+  ]
+}
