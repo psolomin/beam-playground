@@ -5,7 +5,6 @@ import static com.psolomin.producer.Producer.buildProducerP;
 import com.psolomin.producer.Main;
 import java.util.Arrays;
 import org.apache.beam.sdk.io.aws2.kinesis.KinesisRecord;
-import org.apache.beam.sdk.io.aws2.kinesis.KinesisRecordCoder;
 import org.apache.beam.sdk.io.parquet.ParquetIO;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
 import org.apache.beam.sdk.testing.PAssert;
