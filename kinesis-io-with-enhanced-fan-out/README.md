@@ -172,11 +172,12 @@ Submit Flink job
 
 ```
 docker exec -u flink -it kinesis-io-with-enhanced-fan-out-flink-jm-1 flink run \
+    --jobmanager=flink-jm:8081 \
 	--class com.psolomin.flink.FlinkConsumer --detached \
 	/mnt/artifacts/example-com.psolomin.flink.FlinkConsumer-bundled-0.1-SNAPSHOT.jar \
 	--awsRegion=eu-west-1 \
 	--inputStream=stream-01 \
-	--consumerArn=$CONSUMER_ARN \
+	--consumerArn=rn:aws:kinesis:eu-west-1:790288347884:stream/stream-01/consumer/consumer-01:1678882898 \
 	--autoWatermarkInterval=10000 \
 	--sinkLocation=/mnt/output \
 	--externalizedCheckpointsEnabled=true \
@@ -186,7 +187,10 @@ docker exec -u flink -it kinesis-io-with-enhanced-fan-out-flink-jm-1 flink run \
 	--checkpointingInterval=60000 \
 	--minPauseBetweenCheckpoints=5000 \
 	--stateBackend=rocksdb \
-	--stateBackendStoragePath=file:///tmp/flink-state
+	--stateBackendStoragePath=file:///tmp/flink-state \
+	--savepointPath=file:///mnt/savepoints/pt0/savepoint-d91d5d-ce5fc823e2dc \
+	--flinkMaster=flink-jm:8081 \
+	--filesToStage=/mnt/artifacts/example-com.psolomin.flink.FlinkConsumer-bundled-0.1-SNAPSHOT.jar
 
 ```
 
@@ -194,15 +198,15 @@ Stop with a savepoint:
 
 ```
 docker exec -u flink -it kinesis-io-with-enhanced-fan-out-flink-jm-1 bin/flink stop \
-	--savepointPath file:///tmp/savepoints/pt0 \
-	6e52e8c0c13752334480979513a37543
+	--savepointPath file:///mnt/savepoints/pt0 \
+	d91d5d525445deac44f0c5674c115e2a
 ```
 
 Start with a savepoint:
 
 ```
 docker exec -u flink -it kinesis-io-with-enhanced-fan-out-flink-jm-1 flink run \
-	-s file:///tmp/savepoints/pt0/savepoint-6e52e8-5124a3d41f97 \
+	-s file:///mnt/savepoints/pt0/savepoint-d91d5d-ce5fc823e2dc \
 	...
 ```
 
@@ -210,4 +214,26 @@ Stop cluster
 
 ```
 docker-compose down -v
+```
+
+
+```
+docker exec -u flink -it kinesis-io-with-enhanced-fan-out-flink-jm-1 \
+    java -jar /mnt/artifacts/example-com.psolomin.flink.FlinkConsumer-bundled-0.1-SNAPSHOT.jar \
+	--awsRegion=eu-west-1 \
+	--inputStream=stream-01 \
+	--consumerArn=rn:aws:kinesis:eu-west-1:790288347884:stream/stream-01/consumer/consumer-01:1678882898 \
+	--autoWatermarkInterval=10000 \
+	--sinkLocation=/mnt/output \
+	--externalizedCheckpointsEnabled=true \
+	--checkpointingMode=EXACTLY_ONCE \
+	--numConcurrentCheckpoints=1 \
+	--checkpointTimeoutMillis=500000 \
+	--checkpointingInterval=60000 \
+	--minPauseBetweenCheckpoints=5000 \
+	--stateBackend=rocksdb \
+	--stateBackendStoragePath=file:///tmp/flink-state \
+	--savepointPath=file:///mnt/savepoints/pt0/savepoint-d91d5d-ce5fc823e2dc \
+	--flinkMaster=flink-jm:8081 \
+	--filesToStage=/mnt/artifacts/example-com.psolomin.flink.FlinkConsumer-bundled-0.1-SNAPSHOT.jar
 ```
