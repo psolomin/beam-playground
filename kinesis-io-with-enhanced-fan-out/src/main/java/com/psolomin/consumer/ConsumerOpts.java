@@ -13,12 +13,6 @@ public interface ConsumerOpts extends PipelineOptions, AwsOptions {
 
     void setInputStream(String value);
 
-    @Default.String("none")
-    @Description("Kinesis consumer to use")
-    String getConsumerArn();
-
-    void setConsumerArn(String value);
-
     @Default.String("LATEST")
     @Description("Start mode for Kinesis consumer - LATEST, etc."
             + "When restoring from a savepoint, this config will be ignored.")

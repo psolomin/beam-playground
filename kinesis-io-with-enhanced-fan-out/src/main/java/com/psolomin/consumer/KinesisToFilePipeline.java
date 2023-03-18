@@ -37,7 +37,6 @@ public class KinesisToFilePipeline {
     }
 
     public static void addPipelineSteps(Pipeline p, ConsumerOpts opts) {
-        String consumerArn = opts.getConsumerArn();
         ClientConfiguration clientConfiguration = ClientConfiguration.builder()
                 .retry(RetryConfiguration.builder()
                         .baseBackoff(Duration.standardSeconds(3))
@@ -51,10 +50,6 @@ public class KinesisToFilePipeline {
                 .withClientConfiguration(clientConfiguration)
                 .withInitialPositionInStream(positionInStream)
                 .withProcessingTimeWatermarkPolicy();
-
-        if (!consumerArn.equals("none")) {
-            reader = reader.withConsumerArn(consumerArn);
-        }
 
         PCollection<KinesisRecord> windowedRecords = p.apply("Source", reader)
                 .apply("Fixed windows", Window.<KinesisRecord>into(FixedWindows.of(Duration.standardSeconds(60))));
