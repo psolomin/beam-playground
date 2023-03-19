@@ -59,7 +59,7 @@ Check output:
 
 ```
 output_dir =
-df = spark.read.parquet(output_dir)
-df.count()
-df.distinct().count()
+spark.read.parquet(output_dir).count()
+spark.read.parquet(output_dir).distinct().count()
+spark.read.parquet(output_dir).groupBy("shard_id").count().show()
 ```

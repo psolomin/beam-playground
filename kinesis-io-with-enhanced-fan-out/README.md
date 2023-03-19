@@ -11,12 +11,14 @@ Testing approach consisted of the following:
 1. start consumer with file sink (parquet)
 2. start producer with known output records
 3. (optionally)
-	- re-shard Kinesis stream
-	- app kill and start from savepoint
-	- app start at some timestamp
-	- run with increased network latency (via `tc`)
-	- run with artificial "slow" processor (see `processTimePerRecord` cmd argument)
-	- run with a sometimes-failing processor (see `failAfterRecordsSeenCnt` cmd argument)
+    - re-shard Kinesis stream
+    - app kill and start from savepoint
+      - Simulate migration from previous Beam release
+      - Simulate migration to previous Beam release
+    - app start at some timestamp
+    - run with increased network latency (via `tc`)
+    - run with artificial "slow" processor (see `processTimePerRecord` cmd argument)
+    - run with a sometimes-failing processor (see `failAfterRecordsSeenCnt` cmd argument)
 4. check file sink outputs (with `pyspark`)
 
 ## Requirements
@@ -195,7 +197,7 @@ Stop with a savepoint:
 
 ```
 docker exec -u flink -it kinesis-io-with-enhanced-fan-out-flink-jm-1 bin/flink stop \
-	--savepointPath file:///mnt/savepoints/pt0 \
+	--savepointPath file:///mnt/savepoints/beam-2.46.0 \
 	2b952811df3388df43891664c391fbdd
 ```
 
@@ -203,7 +205,7 @@ Start with a savepoint:
 
 ```
 docker exec -u flink -it kinesis-io-with-enhanced-fan-out-flink-jm-1 flink run \
-	-s file:///mnt/savepoints/pt0/savepoint-2b1333-d9028e19a3ef \
+	-s file:///mnt/savepoints/beam-2.46.0/savepoint-23e357-886dc2dbe157 \
 	...
 	--kinesisSourceToConsumerMapping="{\"stream-01\": \"$CONSUMER_ARN\"}"
 
