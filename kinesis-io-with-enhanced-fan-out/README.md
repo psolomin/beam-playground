@@ -11,12 +11,14 @@ Testing approach consisted of the following:
 1. start consumer with file sink (parquet)
 2. start producer with known output records
 3. (optionally)
-	- re-shard Kinesis stream
-	- app kill and start from savepoint
-	- app start at some timestamp
-	- run with increased network latency (via `tc`)
-	- run with artificial "slow" processor (see `processTimePerRecord` cmd argument)
-	- run with a sometimes-failing processor (see `failAfterRecordsSeenCnt` cmd argument)
+    - re-shard Kinesis stream
+    - app kill and start from savepoint
+      - Simulate migration from previous Beam release
+      - Simulate migration to previous Beam release
+    - app start at some timestamp
+    - run with increased network latency (via `tc`)
+    - run with artificial "slow" processor (see `processTimePerRecord` cmd argument)
+    - run with a sometimes-failing processor (see `failAfterRecordsSeenCnt` cmd argument)
 4. check file sink outputs (with `pyspark`)
 
 ## Requirements
@@ -158,13 +160,13 @@ mvn package -Pflink -DskipTests \
 Start toy cluster
 
 ```
-docker-compose up --build -d flink-tm
+docker-compose up --build -d flink-tm1
 ```
 
 Simulating networking issues (optional)
 
 ```
-docker exec --privileged kinesis-io-with-enhanced-fan-out-flink-tm-1 \
+docker exec --privileged kinesis-io-with-enhanced-fan-out-flink-tm1-1 \
 	tc qdisc add dev eth0 root netem delay 300ms
 ```
 
@@ -174,9 +176,9 @@ Submit Flink job
 docker exec -u flink -it kinesis-io-with-enhanced-fan-out-flink-jm-1 flink run \
 	--class com.psolomin.flink.FlinkConsumer --detached \
 	/mnt/artifacts/example-com.psolomin.flink.FlinkConsumer-bundled-0.1-SNAPSHOT.jar \
+	--kinesisSourceToConsumerMapping="{\"stream-01\": \"$CONSUMER_ARN\"}" \
 	--awsRegion=eu-west-1 \
 	--inputStream=stream-01 \
-	--consumerArn=$CONSUMER_ARN \
 	--autoWatermarkInterval=10000 \
 	--sinkLocation=/mnt/output \
 	--externalizedCheckpointsEnabled=true \
@@ -186,7 +188,8 @@ docker exec -u flink -it kinesis-io-with-enhanced-fan-out-flink-jm-1 flink run \
 	--checkpointingInterval=60000 \
 	--minPauseBetweenCheckpoints=5000 \
 	--stateBackend=rocksdb \
-	--stateBackendStoragePath=file:///tmp/flink-state
+	--stateBackendStoragePath=file:///tmp/flink-state \
+	--parallelism=2
 
 ```
 
@@ -194,16 +197,18 @@ Stop with a savepoint:
 
 ```
 docker exec -u flink -it kinesis-io-with-enhanced-fan-out-flink-jm-1 bin/flink stop \
-	--savepointPath file:///tmp/savepoints/pt0 \
-	6e52e8c0c13752334480979513a37543
+	--savepointPath file:///mnt/savepoints/beam-2.46.0 \
+	2b952811df3388df43891664c391fbdd
 ```
 
 Start with a savepoint:
 
 ```
 docker exec -u flink -it kinesis-io-with-enhanced-fan-out-flink-jm-1 flink run \
-	-s file:///tmp/savepoints/pt0/savepoint-6e52e8-5124a3d41f97 \
+	-s file:///mnt/savepoints/beam-2.46.0/savepoint-23e357-886dc2dbe157 \
 	...
+	--kinesisSourceToConsumerMapping="{\"stream-01\": \"$CONSUMER_ARN\"}"
+
 ```
 
 Stop cluster

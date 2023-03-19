@@ -1,0 +1,9 @@
+{
+  "namespace": "com.psolomin.records",
+  "type": "record",
+  "name": "ConsumedEvent",
+  "fields": [
+    {"name": "id", "type": "long"},
+    {"name": "shard_id", "type": "string"}
+  ]
+}

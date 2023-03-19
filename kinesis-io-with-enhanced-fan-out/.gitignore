@@ -1,4 +1,6 @@
+bin
 logs
 scripts/iam-policy.json
 output
+savepoints
 .env

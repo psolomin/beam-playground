@@ -3,9 +3,9 @@ package com.psolomin.consumer;
 import static com.psolomin.producer.Producer.buildProducerP;
 
 import com.psolomin.producer.Main;
-import java.util.Arrays;
+import com.psolomin.records.ConsumedEvent;
+import java.util.List;
 import org.apache.beam.sdk.io.aws2.kinesis.KinesisRecord;
-import org.apache.beam.sdk.io.aws2.kinesis.KinesisRecordCoder;
 import org.apache.beam.sdk.io.parquet.ParquetIO;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
 import org.apache.beam.sdk.testing.PAssert;
@@ -50,10 +50,15 @@ public class KinesisToFilePipelineTest {
         KinesisToFilePipeline.write(records, consumerOpts);
         writerP.run();
 
-        PCollection<Long> recordsFromFiles = readerP.apply(
-                ParquetIO.parseGenericRecords(new GenericRecordToId()).from(path + "/*"));
+        PCollection<ConsumedEvent> recordsFromFiles =
+                readerP.apply(ParquetIO.parseGenericRecords(new GenericRecordToConsumedEvent())
+                        .from(path + "/*"));
 
-        PAssert.that(recordsFromFiles).containsInAnyOrder(Arrays.asList(0L, 1L, 2L));
+        PAssert.that(recordsFromFiles)
+                .containsInAnyOrder(List.of(
+                        new ConsumedEvent(0L, "shard-000"),
+                        new ConsumedEvent(1L, "shard-000"),
+                        new ConsumedEvent(2L, "shard-000")));
         readerP.run();
     }
 }

@@ -1,12 +1,13 @@
 package com.psolomin.consumer;
 
 import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.beam.sdk.io.aws2.kinesis.KinesisRecord;
 import org.apache.beam.sdk.transforms.DoFn;
 
 /**
  * This will make pipeline to crash and re-started by the runner.
  */
-public class FailingProcessor extends DoFn<byte[], byte[]> {
+public class FailingProcessor extends DoFn<KinesisRecord, KinesisRecord> {
     private final int failAfterRecordsSeenCnt;
     private transient AtomicInteger recordsSeenCnt;
 
@@ -20,7 +21,7 @@ public class FailingProcessor extends DoFn<byte[], byte[]> {
     }
 
     @ProcessElement
-    public void processElement(@Element byte[] input, OutputReceiver<byte[]> out) {
+    public void processElement(@Element KinesisRecord input, OutputReceiver<KinesisRecord> out) {
         if (failAfterRecordsSeenCnt > 0) {
             if (recordsSeenCnt.incrementAndGet() >= failAfterRecordsSeenCnt) {
                 throw new RuntimeException("Go away!");

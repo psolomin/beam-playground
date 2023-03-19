@@ -1,6 +1,6 @@
 package com.psolomin.consumer;
 
-import com.psolomin.records.LogEvent;
+import com.psolomin.records.ConsumedEvent;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.extensions.avro.coders.AvroCoder;
@@ -22,22 +22,21 @@ import software.amazon.kinesis.common.InitialPositionInStream;
 
 public class KinesisToFilePipeline {
     public static WriteFilesResult<Void> write(PCollection<KinesisRecord> records, ConsumerOpts opts) {
-        String runId = RandomStringUtils.randomAlphabetic(5);
-        return records.apply("Get payloads", ParDo.of(new PayloadExtractor()))
-                .apply("Process payloads", ParDo.of(new SlowProcessor(opts.getProcessTimePerRecord())))
+        String runId = RandomStringUtils.randomAlphabetic(5).toLowerCase();
+        return records.apply("Process payloads", ParDo.of(new SlowProcessor(opts.getProcessTimePerRecord())))
                 .apply("Maybe fail", ParDo.of(new FailingProcessor(opts.getFailAfterRecordsSeenCnt())))
-                .apply("Parse payloads", ParDo.of(new LogEventDeserializer()))
-                .setCoder(AvroCoder.of(GenericRecord.class, LogEvent.SCHEMA$))
+                .apply("Parse payloads", ParDo.of(new ConsumedEventDeserializer()))
+                .setCoder(AvroCoder.of(GenericRecord.class, ConsumedEvent.SCHEMA$))
                 .apply(
                         "Sink to S3",
                         FileIO.<GenericRecord>write()
-                                .via(ParquetIO.sink(LogEvent.SCHEMA$).withCompressionCodec(CompressionCodecName.SNAPPY))
+                                .via(ParquetIO.sink(ConsumedEvent.SCHEMA$)
+                                        .withCompressionCodec(CompressionCodecName.SNAPPY))
                                 .to(opts.getSinkLocation())
                                 .withNaming(new NoColonFileNaming(runId)));
     }
 
     public static void addPipelineSteps(Pipeline p, ConsumerOpts opts) {
-        String consumerArn = opts.getConsumerArn();
         ClientConfiguration clientConfiguration = ClientConfiguration.builder()
                 .retry(RetryConfiguration.builder()
                         .baseBackoff(Duration.standardSeconds(3))
@@ -51,10 +50,6 @@ public class KinesisToFilePipeline {
                 .withClientConfiguration(clientConfiguration)
                 .withInitialPositionInStream(positionInStream)
                 .withProcessingTimeWatermarkPolicy();
-
-        if (!consumerArn.equals("none")) {
-            reader = reader.withConsumerArn(consumerArn);
-        }
 
         PCollection<KinesisRecord> windowedRecords = p.apply("Source", reader)
                 .apply("Fixed windows", Window.<KinesisRecord>into(FixedWindows.of(Duration.standardSeconds(60))));
