@@ -1,8 +1,9 @@
 package com.psolomin.consumer;
 
+import org.apache.beam.sdk.io.aws2.kinesis.KinesisRecord;
 import org.apache.beam.sdk.transforms.DoFn;
 
-public class SlowProcessor extends DoFn<byte[], byte[]> {
+public class SlowProcessor extends DoFn<KinesisRecord, KinesisRecord> {
     private final long delay;
 
     public SlowProcessor(long delay) {
@@ -22,7 +23,7 @@ public class SlowProcessor extends DoFn<byte[], byte[]> {
      * @param out
      */
     @ProcessElement
-    public void processElement(@Element byte[] input, OutputReceiver<byte[]> out) {
+    public void processElement(@Element KinesisRecord input, OutputReceiver<KinesisRecord> out) {
         if (delay > 0) {
             try {
                 Thread.sleep(delay);
