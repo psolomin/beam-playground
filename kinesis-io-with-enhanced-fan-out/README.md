@@ -158,13 +158,13 @@ mvn package -Pflink -DskipTests \
 Start toy cluster
 
 ```
-docker-compose up --build -d flink-tm
+docker-compose up --build -d flink-tm1
 ```
 
 Simulating networking issues (optional)
 
 ```
-docker exec --privileged kinesis-io-with-enhanced-fan-out-flink-tm-1 \
+docker exec --privileged kinesis-io-with-enhanced-fan-out-flink-tm1-1 \
 	tc qdisc add dev eth0 root netem delay 300ms
 ```
 
@@ -186,7 +186,8 @@ docker exec -u flink -it kinesis-io-with-enhanced-fan-out-flink-jm-1 flink run \
 	--checkpointingInterval=60000 \
 	--minPauseBetweenCheckpoints=5000 \
 	--stateBackend=rocksdb \
-	--stateBackendStoragePath=file:///tmp/flink-state
+	--stateBackendStoragePath=file:///tmp/flink-state \
+	--parallelism=2
 
 ```
 

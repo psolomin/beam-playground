@@ -21,11 +21,12 @@ services:
     volumes:
       - ./savepoints:/mnt/savepoints
       - ./target:/mnt/artifacts:ro
+      - ./bin/:/mnt/beam-2.46.0:ro
       - ${HOME}/.aws/credentials:/opt/flink/.aws/credentials:ro
     command:
       - jobmanager
 
-  flink-tm:
+  flink-tm1:
     build:
       context: .
     depends_on:
@@ -39,7 +40,7 @@ services:
       - |
         FLINK_PROPERTIES=
         jobmanager.rpc.address: flink-jm
-        taskmanager.numberOfTaskSlots: 4
+        taskmanager.numberOfTaskSlots: 2
         env.log.dir: /tmp/flink-logs
     volumes:
       - ./savepoints:/mnt/savepoints
