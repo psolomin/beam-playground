@@ -73,6 +73,10 @@ aws kinesis create-stream --stream-name $STREAM \
 aws kinesis register-stream-consumer \
 	--stream-arn arn:aws:kinesis:${AWS_REGION}:${AWS_ACCOUNT}:stream/$STREAM \
 	--consumer-name consumer-01
+
+aws kinesis list-stream-consumers \
+    --stream-arn arn:aws:kinesis:${AWS_REGION}:${AWS_ACCOUNT}:stream/$STREAM
+
 ```
 
 
@@ -176,7 +180,7 @@ Submit Flink job
 docker exec -u flink -it kinesis-io-with-enhanced-fan-out-flink-jm-1 flink run \
 	--class com.psolomin.flink.FlinkConsumer --detached \
 	/mnt/artifacts/example-com.psolomin.flink.FlinkConsumer-bundled-0.1-SNAPSHOT.jar \
-	--kinesisIOConsumerArns="{\"stream-01\": \"arn:aws:kinesis:eu-west-1:790288347884:stream/stream-01/consumer/consumer-01:1679342196\"}" \
+	--kinesisIOConsumerArns="{\"stream-01\": \"$CONSUMER_ARN\"}" \
 	--awsRegion=eu-west-1 \
 	--inputStream=stream-01 \
 	--autoWatermarkInterval=10000 \
@@ -189,7 +193,7 @@ docker exec -u flink -it kinesis-io-with-enhanced-fan-out-flink-jm-1 flink run \
 	--minPauseBetweenCheckpoints=5000 \
 	--stateBackend=rocksdb \
 	--stateBackendStoragePath=file:///tmp/flink-state \
-	--parallelism=2
+	--parallelism=1
 
 ```
 
@@ -197,15 +201,15 @@ Stop with a savepoint:
 
 ```
 docker exec -u flink -it kinesis-io-with-enhanced-fan-out-flink-jm-1 bin/flink stop \
-	--savepointPath file:///mnt/savepoints/beam-2.46.0 \
-	11880e941e86f774c072659e265ee204
+	--savepointPath file:///mnt/savepoints \
+	b8b68d405ab85ac69bb39abbf59e3dcb
 ```
 
 Start with a savepoint:
 
 ```
 docker exec -u flink -it kinesis-io-with-enhanced-fan-out-flink-jm-1 flink run \
-	-s file:///mnt/savepoints/beam-2.46.0/savepoint-11880e-364450666004 \
+	-s file:///mnt/savepoints/savepoint-b8b68d-a29e78190e68 \
 	...
 	--kinesisIOConsumerArns="{\"stream-01\": \"$CONSUMER_ARN\"}"
 
