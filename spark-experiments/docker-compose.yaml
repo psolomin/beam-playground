@@ -1,0 +1,10 @@
+services:
+  db:
+    image: mysql:5.7.41
+    environment:
+      - MYSQL_DATABASE=my_db
+      - MYSQL_USER=my
+      - MYSQL_PASSWORD=my
+      - MYSQL_ROOT_PASSWORD=my_root
+    ports:
+      - "3306:3306"
