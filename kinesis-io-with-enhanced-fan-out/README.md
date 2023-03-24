@@ -176,7 +176,7 @@ Submit Flink job
 docker exec -u flink -it kinesis-io-with-enhanced-fan-out-flink-jm-1 flink run \
 	--class com.psolomin.flink.FlinkConsumer --detached \
 	/mnt/artifacts/example-com.psolomin.flink.FlinkConsumer-bundled-0.1-SNAPSHOT.jar \
-	--kinesisIOReadStreamToConsumerArnMapping="{\"stream-01\": \"$CONSUMER_ARN\"}" \
+	--kinesisIOConsumerArns="{\"stream-01\": \"arn:aws:kinesis:eu-west-1:790288347884:stream/stream-01/consumer/consumer-01:1679342196\"}" \
 	--awsRegion=eu-west-1 \
 	--inputStream=stream-01 \
 	--autoWatermarkInterval=10000 \
@@ -197,17 +197,17 @@ Stop with a savepoint:
 
 ```
 docker exec -u flink -it kinesis-io-with-enhanced-fan-out-flink-jm-1 bin/flink stop \
-	--savepointPath file:///mnt/savepoints/beam-2.47.0 \
-	54ccc62a10984127fa4b025c0ba9ac9e
+	--savepointPath file:///mnt/savepoints/beam-2.46.0 \
+	11880e941e86f774c072659e265ee204
 ```
 
 Start with a savepoint:
 
 ```
 docker exec -u flink -it kinesis-io-with-enhanced-fan-out-flink-jm-1 flink run \
-	-s file:///mnt/savepoints/beam-2.47.0/savepoint-54ccc6-ecb16d74d4cf \
+	-s file:///mnt/savepoints/beam-2.46.0/savepoint-11880e-364450666004 \
 	...
-	--kinesisIOReadStreamToConsumerArnMapping="{\"stream-01\": \"$CONSUMER_ARN\"}"
+	--kinesisIOConsumerArns="{\"stream-01\": \"$CONSUMER_ARN\"}"
 
 ```
 
