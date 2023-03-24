@@ -241,7 +241,7 @@ Start with a savepoint:
 docker exec -u flink -it kinesis-io-with-enhanced-fan-out-flink-jm-1 flink run \
 	-s file:///mnt/savepoints/beam-2.47.0/savepoint-54ccc6-ecb16d74d4cf \
 	...
-	--kinesisIOConsumerArns="{\"stream-01\": \"$CONSUMER_ARN\"}"
+	--kinesisIOReadStreamToConsumerArnMapping="{\"stream-01\": \"$CONSUMER_ARN\"}"
 
 ```
 
