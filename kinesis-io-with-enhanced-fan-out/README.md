@@ -180,7 +180,6 @@ Submit Flink job
 docker exec -u flink -it kinesis-io-with-enhanced-fan-out-flink-jm-1 flink run \
 	--class com.psolomin.flink.FlinkConsumer --detached \
 	/mnt/artifacts/example-com.psolomin.flink.FlinkConsumer-bundled-0.1-SNAPSHOT.jar \
-	--kinesisIOConsumerArns="{\"stream-01\": \"$CONSUMER_ARN\"}" \
 	--awsRegion=eu-west-1 \
 	--inputStream=stream-01 \
 	--autoWatermarkInterval=10000 \
@@ -193,7 +192,8 @@ docker exec -u flink -it kinesis-io-with-enhanced-fan-out-flink-jm-1 flink run \
 	--minPauseBetweenCheckpoints=5000 \
 	--stateBackend=rocksdb \
 	--stateBackendStoragePath=file:///tmp/flink-state \
-	--parallelism=2
+	--maxParallelism=3 \
+	--parallelism=1
 
 ```
 
@@ -202,14 +202,14 @@ Stop with a savepoint:
 ```
 docker exec -u flink -it kinesis-io-with-enhanced-fan-out-flink-jm-1 bin/flink stop \
 	--savepointPath file:///mnt/savepoints \
-	48aff32510e24f9ff42b1c8cb9f317cb
+	b8b68d405ab85ac69bb39abbf59e3dcb
 ```
 
 Start with a savepoint:
 
 ```
 docker exec -u flink -it kinesis-io-with-enhanced-fan-out-flink-jm-1 flink run \
-	-s file:///mnt/savepoints/savepoint-48aff3-e292c88c40dc \
+	-s file:///mnt/savepoints/savepoint-b8b68d-a29e78190e68 \
 	...
 	--kinesisIOConsumerArns="{\"stream-01\": \"$CONSUMER_ARN\"}"
 
