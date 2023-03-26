@@ -11,14 +11,14 @@ Testing approach consisted of the following:
 1. start consumer with file sink (parquet)
 2. start producer with known output records
 3. (optionally)
-    - re-shard Kinesis stream
-    - app kill and start from savepoint
-      - Simulate migration from previous Beam release
-      - Simulate migration to previous Beam release
-    - app start at some timestamp
-    - run with increased network latency (via `tc`)
-    - run with artificial "slow" processor (see `processTimePerRecord` cmd argument)
-    - run with a sometimes-failing processor (see `failAfterRecordsSeenCnt` cmd argument)
+	- re-shard Kinesis stream
+	- app kill and start from savepoint
+	- Simulate migration from previous Beam release
+	- Simulate migration to previous Beam release
+	- app start at some timestamp
+	- run with increased network latency (via `tc`)
+	- run with artificial "slow" processor (see `processTimePerRecord` cmd argument)
+	- run with a sometimes-failing processor (see `failAfterRecordsSeenCnt` cmd argument)
 4. check file sink outputs (with `pyspark`)
 
 ## Requirements
@@ -75,7 +75,7 @@ aws kinesis register-stream-consumer \
 	--consumer-name consumer-01
 
 aws kinesis list-stream-consumers \
-    --stream-arn arn:aws:kinesis:${AWS_REGION}:${AWS_ACCOUNT}:stream/$STREAM
+	--stream-arn arn:aws:kinesis:${AWS_REGION}:${AWS_ACCOUNT}:stream/$STREAM
 
 ```
 
@@ -124,13 +124,23 @@ mvn package -DskipTests \
 	-Dapp.main.class=com.psolomin.consumer.Main
 
 java -jar target/example-com.psolomin.consumer.Main-bundled-0.1-SNAPSHOT.jar \
-	--inputStream=$STREAM \
+	--awsRegion=eu-west-1 \
+	--inputStream=stream-01 \
 	--sinkLocation=$(pwd)/output \
-	--awsRegion=$AWS_REGION \
-	--consumerArn=$CONSUMER_ARN \
-	| tee log.txt
+	--targetParallelism=2 \
+	| tee logs/log.txt
 
 ```
+
+**NOTE**
+
+DirectRunner has behaviours which are specific to its test-only purpose, e.g.:
+	- periodically restarting sources when non-empty bundles complete
+	- options for starting from serialized state are limited
+	- windowing exposed different behaviours (e.g. errors of being "global" etc.)
+
+This makes the app loosing records when Kinesis stream is re-sharded. This was observed with Beam 2.46.0.
+For re-shard tests, only FlinkRunner or other production-grade runners should be used.
 
 ## Kinesis Data Analytics applications
 
@@ -193,7 +203,7 @@ docker exec -u flink -it kinesis-io-with-enhanced-fan-out-flink-jm-1 flink run \
 	--minPauseBetweenCheckpoints=5000 \
 	--stateBackend=rocksdb \
 	--stateBackendStoragePath=file:///tmp/flink-state \
-	--parallelism=1
+	--parallelism=2
 
 ```
 
@@ -202,14 +212,14 @@ Stop with a savepoint:
 ```
 docker exec -u flink -it kinesis-io-with-enhanced-fan-out-flink-jm-1 bin/flink stop \
 	--savepointPath file:///mnt/savepoints \
-	b8b68d405ab85ac69bb39abbf59e3dcb
+	5f41cb59b8c21361ec5386b8142eba53
 ```
 
 Start with a savepoint:
 
 ```
 docker exec -u flink -it kinesis-io-with-enhanced-fan-out-flink-jm-1 flink run \
-	-s file:///mnt/savepoints/savepoint-b8b68d-a29e78190e68 \
+	-s file:///mnt/savepoints/savepoint-5f41cb-d19b7f31e47e \
 	...
 	--kinesisIOConsumerArns="{\"stream-01\": \"$CONSUMER_ARN\"}"
 
