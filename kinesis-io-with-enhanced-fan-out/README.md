@@ -164,11 +164,15 @@ Check [scripts instructions](./scripts/README.md) for that
 
 This was tested with Docker engine 20.10.22. Older Docker engines may yield errors.
 
-Build artefact
+Build artefacts
 
 ```
 mvn package -Pflink -DskipTests \
 	-Dapp.main.class=com.psolomin.flink.FlinkConsumer
+
+mvn package -Pflink -DskipTests \
+	-Dapp.main.class=com.psolomin.flink.FlinkProducer
+
 ```
 
 Start toy cluster
@@ -184,7 +188,7 @@ docker exec --privileged kinesis-io-with-enhanced-fan-out-flink-tm1-1 \
 	tc qdisc add dev eth0 root netem delay 300ms
 ```
 
-Submit Flink job
+Start Flink consumer job
 
 ```
 docker exec -u flink -it kinesis-io-with-enhanced-fan-out-flink-jm-1 flink run \
@@ -193,6 +197,7 @@ docker exec -u flink -it kinesis-io-with-enhanced-fan-out-flink-jm-1 flink run \
 	--kinesisIOConsumerArns="{\"stream-01\": \"$CONSUMER_ARN\"}" \
 	--awsRegion=eu-west-1 \
 	--inputStream=stream-01 \
+	--startMode=LATEST \
 	--autoWatermarkInterval=10000 \
 	--sinkLocation=/mnt/output \
 	--externalizedCheckpointsEnabled=true \
@@ -207,19 +212,34 @@ docker exec -u flink -it kinesis-io-with-enhanced-fan-out-flink-jm-1 flink run \
 
 ```
 
-Stop with a savepoint:
+Start Flink producer job
+
+```
+docker exec -u flink -it kinesis-io-with-enhanced-fan-out-flink-jm-1 flink run \
+	--class com.psolomin.flink.FlinkProducer --detached \
+	/mnt/artifacts/example-com.psolomin.flink.FlinkProducer-bundled-0.1-SNAPSHOT.jar \
+	--awsRegion=eu-west-1 \
+	--outputStream=stream-01 \
+	--msgsToWrite=20000 \
+	--msgsPerSec=50 \
+	--streaming \
+	--parallelism=2
+
+```
+
+Stop consumer job with a savepoint:
 
 ```
 docker exec -u flink -it kinesis-io-with-enhanced-fan-out-flink-jm-1 bin/flink stop \
 	--savepointPath file:///mnt/savepoints \
-	5f41cb59b8c21361ec5386b8142eba53
+	af0f5c40296e18fa3c4c546d0f1445a3
 ```
 
 Start with a savepoint:
 
 ```
 docker exec -u flink -it kinesis-io-with-enhanced-fan-out-flink-jm-1 flink run \
-	-s file:///mnt/savepoints/savepoint-5f41cb-d19b7f31e47e \
+	-s file:///mnt/savepoints/savepoint-af0f5c-c88e06035799 \
 	...
 	--kinesisIOConsumerArns="{\"stream-01\": \"$CONSUMER_ARN\"}"
 

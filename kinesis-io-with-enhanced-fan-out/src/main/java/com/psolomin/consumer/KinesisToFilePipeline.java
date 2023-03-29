@@ -51,13 +51,6 @@ public class KinesisToFilePipeline {
                 .withInitialPositionInStream(positionInStream)
                 .withProcessingTimeWatermarkPolicy();
 
-        // This version of the window was loosing records when re-staring from a savepoint:
-        //   .apply( "Fixed windows",
-        //      Window.<KinesisRecord>into(FixedWindows.of(Duration.standardSeconds(60)))
-        //        .withAllowedLateness(Duration.ZERO)
-        //        .discardingFiredPanes()
-        //        .triggering(Repeatedly.forever(AfterProcessingTime.pastFirstElementInPane()
-        //          .plusDelayOf(Duration.standardSeconds(60)))));
         PCollection<KinesisRecord> windowedRecords = p.apply("Source", reader)
                 .apply("Fixed windows", Window.<KinesisRecord>into(FixedWindows.of(Duration.standardSeconds(60))));
 
