@@ -40,7 +40,7 @@ services:
       - |
         FLINK_PROPERTIES=
         jobmanager.rpc.address: flink-jm
-        taskmanager.numberOfTaskSlots: 2
+        taskmanager.numberOfTaskSlots: 4
         env.log.dir: /tmp/flink-logs
     volumes:
       - ./savepoints:/mnt/savepoints

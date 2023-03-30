@@ -11,14 +11,14 @@ Testing approach consisted of the following:
 1. start consumer with file sink (parquet)
 2. start producer with known output records
 3. (optionally)
-    - re-shard Kinesis stream
-    - app kill and start from savepoint
-      - Simulate migration from previous Beam release
-      - Simulate migration to previous Beam release
-    - app start at some timestamp
-    - run with increased network latency (via `tc`)
-    - run with artificial "slow" processor (see `processTimePerRecord` cmd argument)
-    - run with a sometimes-failing processor (see `failAfterRecordsSeenCnt` cmd argument)
+	- re-shard Kinesis stream
+	- app kill and start from savepoint
+	- Simulate migration from previous Beam release
+	- Simulate migration to previous Beam release
+	- app start at some timestamp
+	- run with increased network latency (via `tc`)
+	- run with artificial "slow" processor (see `processTimePerRecord` cmd argument)
+	- run with a sometimes-failing processor (see `failAfterRecordsSeenCnt` cmd argument)
 4. check file sink outputs (with `pyspark`)
 
 ## Requirements
@@ -73,6 +73,10 @@ aws kinesis create-stream --stream-name $STREAM \
 aws kinesis register-stream-consumer \
 	--stream-arn arn:aws:kinesis:${AWS_REGION}:${AWS_ACCOUNT}:stream/$STREAM \
 	--consumer-name consumer-01
+
+aws kinesis list-stream-consumers \
+	--stream-arn arn:aws:kinesis:${AWS_REGION}:${AWS_ACCOUNT}:stream/$STREAM
+
 ```
 
 
@@ -120,13 +124,23 @@ mvn package -DskipTests \
 	-Dapp.main.class=com.psolomin.consumer.Main
 
 java -jar target/example-com.psolomin.consumer.Main-bundled-0.1-SNAPSHOT.jar \
-	--inputStream=$STREAM \
+	--awsRegion=eu-west-1 \
+	--inputStream=stream-01 \
 	--sinkLocation=$(pwd)/output \
-	--awsRegion=$AWS_REGION \
-	--consumerArn=$CONSUMER_ARN \
-	| tee log.txt
+	--targetParallelism=2 \
+	| tee logs/log.txt
 
 ```
+
+**NOTE**
+
+DirectRunner has behaviours which are specific to its test-only purpose, e.g.:
+	- periodically restarting sources when non-empty bundles complete
+	- options for starting from serialized state are limited
+	- windowing exposed different behaviours (e.g. errors of being "global" etc.)
+
+This makes the app loosing records when Kinesis stream is re-sharded. This was observed with Beam 2.46.0.
+For re-shard tests, only FlinkRunner or other production-grade runners should be used.
 
 ## Kinesis Data Analytics applications
 
@@ -150,11 +164,15 @@ Check [scripts instructions](./scripts/README.md) for that
 
 This was tested with Docker engine 20.10.22. Older Docker engines may yield errors.
 
-Build artefact
+Build artefacts
 
 ```
 mvn package -Pflink -DskipTests \
 	-Dapp.main.class=com.psolomin.flink.FlinkConsumer
+
+mvn package -Pflink -DskipTests \
+	-Dapp.main.class=com.psolomin.flink.FlinkProducer
+
 ```
 
 Start toy cluster
@@ -170,15 +188,16 @@ docker exec --privileged kinesis-io-with-enhanced-fan-out-flink-tm1-1 \
 	tc qdisc add dev eth0 root netem delay 300ms
 ```
 
-Submit Flink job
+Start Flink consumer job
 
 ```
 docker exec -u flink -it kinesis-io-with-enhanced-fan-out-flink-jm-1 flink run \
 	--class com.psolomin.flink.FlinkConsumer --detached \
 	/mnt/artifacts/example-com.psolomin.flink.FlinkConsumer-bundled-0.1-SNAPSHOT.jar \
-	--kinesisSourceToConsumerMapping="{\"stream-01\": \"$CONSUMER_ARN\"}" \
+	--kinesisIOConsumerArns="{\"stream-01\": \"$CONSUMER_ARN\"}" \
 	--awsRegion=eu-west-1 \
 	--inputStream=stream-01 \
+	--startMode=LATEST \
 	--autoWatermarkInterval=10000 \
 	--sinkLocation=/mnt/output \
 	--externalizedCheckpointsEnabled=true \
@@ -193,21 +212,36 @@ docker exec -u flink -it kinesis-io-with-enhanced-fan-out-flink-jm-1 flink run \
 
 ```
 
-Stop with a savepoint:
+Start Flink producer job
+
+```
+docker exec -u flink -it kinesis-io-with-enhanced-fan-out-flink-jm-1 flink run \
+	--class com.psolomin.flink.FlinkProducer --detached \
+	/mnt/artifacts/example-com.psolomin.flink.FlinkProducer-bundled-0.1-SNAPSHOT.jar \
+	--awsRegion=eu-west-1 \
+	--outputStream=stream-01 \
+	--msgsToWrite=20000 \
+	--msgsPerSec=50 \
+	--streaming \
+	--parallelism=2
+
+```
+
+Stop consumer job with a savepoint:
 
 ```
 docker exec -u flink -it kinesis-io-with-enhanced-fan-out-flink-jm-1 bin/flink stop \
-	--savepointPath file:///mnt/savepoints/beam-2.46.0 \
-	2b952811df3388df43891664c391fbdd
+	--savepointPath file:///mnt/savepoints \
+	af0f5c40296e18fa3c4c546d0f1445a3
 ```
 
 Start with a savepoint:
 
 ```
 docker exec -u flink -it kinesis-io-with-enhanced-fan-out-flink-jm-1 flink run \
-	-s file:///mnt/savepoints/beam-2.46.0/savepoint-23e357-886dc2dbe157 \
+	-s file:///mnt/savepoints/savepoint-af0f5c-c88e06035799 \
 	...
-	--kinesisSourceToConsumerMapping="{\"stream-01\": \"$CONSUMER_ARN\"}"
+	--kinesisIOConsumerArns="{\"stream-01\": \"$CONSUMER_ARN\"}"
 
 ```
 
