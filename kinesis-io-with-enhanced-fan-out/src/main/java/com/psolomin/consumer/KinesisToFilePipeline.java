@@ -18,6 +18,7 @@ import org.apache.beam.sdk.values.PCollection;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.parquet.hadoop.metadata.CompressionCodecName;
 import org.joda.time.Duration;
+import org.joda.time.Instant;
 import software.amazon.kinesis.common.InitialPositionInStream;
 
 public class KinesisToFilePipeline {
@@ -51,6 +52,11 @@ public class KinesisToFilePipeline {
                 .withInitialPositionInStream(positionInStream)
                 .withProcessingTimeWatermarkPolicy();
 
+        if (opts.getStartTs() != null) {
+            Instant ts = Instant.parse(opts.getStartTs());
+            reader = reader.withInitialTimestampInStream(ts);
+        }
+
         PCollection<KinesisRecord> windowedRecords = p.apply("Source", reader)
                 .apply("Fixed windows", Window.<KinesisRecord>into(FixedWindows.of(Duration.standardSeconds(60))));
 
@@ -58,12 +64,15 @@ public class KinesisToFilePipeline {
     }
 
     private static InitialPositionInStream fromConfig(String confOpt) {
-        if (confOpt.equals("LATEST")) {
-            return InitialPositionInStream.LATEST;
-        } else if (confOpt.equals("TRIM_HORIZON")) {
-            return InitialPositionInStream.TRIM_HORIZON;
-        } else {
-            throw new IllegalStateException("Not supported : " + confOpt);
+        switch (confOpt) {
+            case "LATEST":
+                return InitialPositionInStream.LATEST;
+            case "TRIM_HORIZON":
+                return InitialPositionInStream.TRIM_HORIZON;
+            case "AT_TIMESTAMP":
+                return InitialPositionInStream.AT_TIMESTAMP;
+            default:
+                throw new IllegalStateException("Not supported : " + confOpt);
         }
     }
 }

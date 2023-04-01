@@ -20,6 +20,11 @@ public interface ConsumerOpts extends PipelineOptions, AwsOptions {
 
     void setStartMode(String value);
 
+    @Description("Start timestamp, in the format of 2007-12-03T10:15:30.00Z. Used only if startMode=AT_TIMESTAMP")
+    String getStartTs();
+
+    void setStartTs(String value);
+
     @Validation.Required
     @Description("File sink location path")
     String getSinkLocation();
