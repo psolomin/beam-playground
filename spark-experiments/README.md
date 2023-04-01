@@ -30,3 +30,12 @@ Check what was inserted
 mysql --host=127.0.0.1 --port=3306 \
  --database=my_db --user=my --password=my
 ```
+
+## Minikube
+
+Requires:
+- kubectl 1.22.2 or higher
+- minikube 1.22.0 or higher
+
+Follow the scripts under [k8s dir](./k8s).
+

@@ -18,8 +18,8 @@ plugins {
     id "com.github.maiflai.scalatest" version "0.32"
 }
 
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
+sourceCompatibility = 11
+targetCompatibility = 11
 
 repositories {
     mavenCentral()
