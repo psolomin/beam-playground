@@ -1,0 +1,59 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  namespace: my-spark
+  name: spark-client
+  labels:
+    run: spark-client
+spec:
+  containers:
+    - command:
+        - sh
+        - -c
+        - exec tail -f /dev/null
+      image: my-spark.foo/my-spark/spark:3.3.2-java11
+      imagePullPolicy: Never  # minikube image load is not working otherwise
+      name: spark-client
+      resources:
+        requests:
+          cpu: 0.25
+          memory: 256Mi
+        limits:
+          cpu: 0.5
+          memory: 512Mi
+      env:
+        - name: SPARK_USER
+          value: spark3
+      volumeMounts:
+        - mountPath: /etc/spark
+          name: runtime-config
+          readOnly: true
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+  serviceAccountName: my-spark-sa
+  volumes:
+    - configMap:
+        items:
+          - key: exec_tpl
+            path: executor-template.yaml
+        name: configs
+      name: runtime-config
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    run: spark-client
+  name: spark-client-headless
+  namespace: my-spark
+spec:
+  clusterIP: None
+  ports:
+    - port: 19987
+      protocol: TCP
+      targetPort: 19987
+  selector:
+    run: spark-client
+  type: ClusterIP
