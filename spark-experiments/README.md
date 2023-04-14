@@ -50,6 +50,20 @@ mysql --host=127.0.0.1 --port=3306 \
  --database=my_db --user=my --password=my
 ```
 
+## Streaming
+
+Configure Kafka
+
+```
+docker-compose up --build topics
+```
+
+Read from Kafka
+
+```
+kcat -b localhost:19092 -t raw -C -o beginning
+```
+
 ## Minikube
 
 Requires:
