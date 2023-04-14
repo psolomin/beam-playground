@@ -50,6 +50,7 @@ COPY kubernetes/dockerfiles/spark/decom.sh /opt/
 COPY examples /opt/spark/examples
 COPY kubernetes/tests /opt/spark/tests
 COPY data /opt/spark/data
+COPY user-jars /opt/spark/user-jars
 
 ENV SPARK_HOME /opt/spark
 
