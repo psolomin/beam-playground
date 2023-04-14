@@ -14,7 +14,9 @@ kubectl apply -f namespace.yaml
 
 # load local config files into mountable volumes:
 kubectl -n my-spark create configmap configs \
-  --from-file=exec_tpl=./executor-template.yaml
+  --from-file=exec_tpl=./executor-template.yaml \
+  --save-config -o yaml --dry-run=client \
+  | kubectl apply -f -
 
 # create client pod - apps will be submitted from it in local or cluster mode:
 kubectl apply -f spark-shell-pod.yaml
@@ -35,3 +37,7 @@ kubectl -n my-spark exec -it spark-client -- sh -c 'cd /opt/spark/; ./bin/spark-
     --conf spark.driver.host=spark-client-headless \
     --conf spark.driver.port=19987 \
     --conf spark.jars.ivy=/tmp/.ivy'
+
+
+# in the scala shell:
+# spark.read.parquet("/opt/spark/examples/src/main/resources/users.parquet").show

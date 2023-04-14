@@ -2,6 +2,3 @@ spec:
   containers:
     - image: my-spark.foo/my-spark/spark:3.3.2-java11
       imagePullPolicy: Never  # minikube image load is not working otherwise
-      env:
-        - name: SPARK_USER
-          value: spark3
