@@ -16,14 +16,20 @@ object Main {
       .getOrCreate()
 
     val numRecords = args(0).toLong
+    val df = generateDf(spark, numRecords)
 
-    generateDf(spark, numRecords).write
+    val url = "jdbc:mysql://127.0.0.1:3306/my_db?rewriteBatchedStatements=true"
+    val user = "my"
+    val pass = "my"
+    val table = "my_table"
+
+    df.write
       .format("jdbc")
       .option("driver", "com.mysql.cj.jdbc.Driver")
-      .option("url", "jdbc:mysql://127.0.0.1:3306/my_db?rewriteBatchedStatements=true")
-      .option("dbtable", "my_table")
-      .option("user", "my")
-      .option("password", "my")
+      .option("url", url)
+      .option("user", user)
+      .option("password", pass)
+      .option("dbtable", table)
       .option("truncate", "true")
       .option("numPartitions", "4")
       .option("batchsize", "10000")

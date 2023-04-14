@@ -1,0 +1,109 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: my-spark
+
+---
+
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: my-spark-quota
+  namespace: my-spark
+spec:
+  hard:
+    requests.cpu: 3
+    requests.memory: 6Gi
+    limits.cpu: 4
+    limits.memory: 8Gi
+
+---
+
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: my-spark-limit-ranges
+  namespace: my-spark
+spec:
+  limits:
+    - max:
+        cpu: "1"
+      min:
+        cpu: "0.25"
+      type: Container
+
+---
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: my-spark-sa
+  namespace: my-spark
+
+---
+
+apiVersion: v1
+items:
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: Role
+    metadata:
+      name: my-spark-role
+      namespace: my-spark
+    rules:
+      - apiGroups:
+          - '*'
+        resources:
+          - '*'
+        verbs:
+          - '*'
+kind: List
+
+---
+
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: my-spark-rb
+  namespace: my-spark
+subjects:
+  - kind: ServiceAccount
+    name: my-spark-sa
+    namespace: my-spark
+roleRef:
+  kind: Role
+  name: my-spark-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+
+apiVersion: v1
+items:
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRole
+    metadata:
+      name: my-spark-role
+      namespace: my-spark
+    rules:
+      - apiGroups:
+          - '*'
+        resources:
+          - '*'
+        verbs:
+          - '*'
+kind: List
+
+---
+
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: my-spark-crb
+  namespace: my-spark
+subjects:
+  - kind: ServiceAccount
+    name: my-spark-sa
+    namespace: my-spark
+roleRef:
+  kind: ClusterRole
+  name: my-spark-role
+  apiGroup: rbac.authorization.k8s.io
