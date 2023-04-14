@@ -4,6 +4,13 @@ Requirements:
 
 - Java 11 or higher
 
+
+Build and test
+
+```
+./gradlew clean build
+```
+
 Start database
 
 ```
@@ -15,17 +22,17 @@ Download Spark distro
 ```
 mkdir -p distros
 
-curl https://dlcdn.apache.org/spark/spark-3.3.2/spark-3.3.2-bin-hadoop3.tgz \
-    -o ./distros/spark-3.3.2-bin-hadoop3.tgz
+curl https://dlcdn.apache.org/spark/spark-3.4.0/spark-3.4.0-bin-hadoop3.tgz \
+    -o ./distros/spark-3.4.0-bin-hadoop3.tgz
 
-tar zxvf ./distros/spark-3.3.2-bin-hadoop3.tgz --directory ./distros
+tar zxvf ./distros/spark-3.4.0-bin-hadoop3.tgz --directory ./distros
 
 ```
 
 Submit spark job:
 
 ```
-distros_dir=./distros/spark-3.3.2-bin-hadoop3
+distros_dir=./distros/spark-3.4.0-bin-hadoop3
 
 ./gradlew clean build copyAllDependencies
 
@@ -52,7 +59,7 @@ Requires:
 Add custom stuff into image:
 
 ```shell
-distros_dir=./distros/spark-3.3.2-bin-hadoop3
+distros_dir=./distros/spark-3.4.0-bin-hadoop3
 
 mkdir -p ${distros_dir}/user-jars
 
@@ -61,9 +68,9 @@ mkdir -p ${distros_dir}/user-jars
 cp Dockerfile ${distros_dir}/kubernetes/dockerfiles/spark/
 
 ${distros_dir}/bin/docker-image-tool.sh \
-    -r my-spark.foo/my-spark -t 3.3.2-java11 build
+    -r my-spark.foo/my-spark -t 3.4.0-java11 build
 
-minikube image load my-spark.foo/my-spark/spark:3.3.2-java11 --overwrite=true
+minikube image load my-spark.foo/my-spark/spark:3.4.0-java11 --overwrite=true
 
 ```
 
@@ -76,7 +83,7 @@ kubectl -n my-spark exec -it spark-client -- sh -c 'cd /opt/spark/; ./bin/spark-
     --master k8s://https://kubernetes.default.svc:443 \
     --deploy-mode client \
     --conf spark.kubernetes.namespace=my-spark \
-    --conf spark.kubernetes.container.image=my-spark.foo/my-spark/spark:3.3.2-java11 \
+    --conf spark.kubernetes.container.image=my-spark.foo/my-spark/spark:3.4.0-java11 \
     --conf spark.kubernetes.container.image.pullPolicy=Never  \
     --conf spark.kubernetes.authenticate.driver.serviceAccountName=my-spark-sa \
     --conf spark.kubernetes.authenticate.serviceAccountName=my-spark-sa \
