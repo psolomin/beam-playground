@@ -31,10 +31,12 @@ repositories {
 
 dependencies {
     compileOnly "org.apache.spark:spark-sql_2.12:${sparkVersion}"
+    implementation "org.apache.spark:spark-sql-kafka-0-10_2.12:${sparkVersion}"
     implementation "com.mysql:mysql-connector-j:8.0.32"
 
     // test dependencies
     testImplementation "org.apache.spark:spark-sql_2.12:${sparkVersion}"
+    testImplementation "org.apache.spark:spark-sql-kafka-0-10_2.12:${sparkVersion}"
     testImplementation "org.scalatest:scalatest_2.12:3.3.0-SNAP3"
     testImplementation 'com.holdenkarau:spark-testing-base_2.12:3.3.1_1.4.0'
     testImplementation "org.apache.spark:spark-hive_2.12:${sparkVersion}"

@@ -58,10 +58,24 @@ Configure Kafka
 docker-compose up --build topics
 ```
 
-Read from Kafka
+Kafka to file streaming job:
 
 ```
-kcat -b localhost:19092 -t raw -C -o beginning
+distros_dir=./distros/spark-3.4.0-bin-hadoop3
+
+./gradlew clean build copyAllDependencies
+
+${distros_dir}/bin/spark-submit \
+    --conf spark.driver.extraClassPath="./build/user-libs/*" \
+    --conf spark.executor.extraClassPath="./build/user-libs/*" \
+    --class MainStreaming ./build/libs/spark-experiments.jar ./chk ./output
+
+```
+
+Write to Kafka
+
+```
+kcat -b localhost:19092 -t raw -K: -P -l data-samples/sample1.json
 ```
 
 ## Minikube
