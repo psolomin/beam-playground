@@ -12,7 +12,9 @@ import org.apache.beam.sdk.io.aws2.kinesis.KinesisIO;
 import org.apache.beam.sdk.io.aws2.kinesis.KinesisRecord;
 import org.apache.beam.sdk.io.parquet.ParquetIO;
 import org.apache.beam.sdk.transforms.ParDo;
+import org.apache.beam.sdk.transforms.windowing.AfterProcessingTime;
 import org.apache.beam.sdk.transforms.windowing.FixedWindows;
+import org.apache.beam.sdk.transforms.windowing.Repeatedly;
 import org.apache.beam.sdk.transforms.windowing.Window;
 import org.apache.beam.sdk.values.PCollection;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -58,7 +60,13 @@ public class KinesisToFilePipeline {
         }
 
         PCollection<KinesisRecord> windowedRecords = p.apply("Source", reader)
-                .apply("Fixed windows", Window.<KinesisRecord>into(FixedWindows.of(Duration.standardSeconds(60))));
+                .apply(
+                        "Fixed windows",
+                        Window.<KinesisRecord>into(FixedWindows.of(Duration.standardSeconds(60)))
+                                .withAllowedLateness(Duration.standardHours(1))
+                                .discardingFiredPanes()
+                                .triggering(Repeatedly.forever(AfterProcessingTime.pastFirstElementInPane()
+                                        .plusDelayOf(Duration.standardSeconds(60)))));
 
         KinesisToFilePipeline.write(windowedRecords, opts);
     }
