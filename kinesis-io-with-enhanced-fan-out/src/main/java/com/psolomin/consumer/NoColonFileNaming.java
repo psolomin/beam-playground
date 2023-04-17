@@ -13,7 +13,9 @@ public class NoColonFileNaming implements FileIO.Write.FileNaming {
     private final FileIO.Write.FileNaming defaultNaming;
 
     public NoColonFileNaming(String runId) {
-        this.defaultNaming = FileIO.Write.defaultNaming("out-" + runId, ".parquet");
+        // Don't include run ID:
+        // this.defaultNaming = FileIO.Write.defaultNaming("out-" + runId, ".parquet");
+        this.defaultNaming = FileIO.Write.defaultNaming("out", ".parquet");
     }
 
     @Override
