@@ -5,6 +5,18 @@ import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 
 public class Main {
+  static class Server extends AbstractVerticle {
+    public void start() {
+      vertx
+          .createHttpServer()
+          .requestHandler(
+              req -> {
+                req.response().putHeader("content-type", "text/plain").end("Hello from Vert.x!");
+              })
+          .listen(8080);
+    }
+  }
+
   static class MyVerticle extends AbstractVerticle {
     @Override
     public void start() {
@@ -25,5 +37,10 @@ public class Main {
     MyVerticle v = new MyVerticle();
     v.init(vertx, vertx.getOrCreateContext());
     v.start();
+    v.stop();
+
+    Server s = new Server();
+    s.init(vertx, vertx.getOrCreateContext());
+    s.start();
   }
 }
