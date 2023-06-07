@@ -21,7 +21,6 @@ repositories {
 }
 
 dependencies {
-    // this are used for spark.sql.hive.metastore.jars
     implementation "io.vertx:vertx-core:4.4.1"
     runtimeOnly "io.netty:netty-resolver-dns-native-macos:4.1.91.Final:osx-x86_64"
 }
