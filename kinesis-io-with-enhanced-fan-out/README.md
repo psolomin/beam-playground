@@ -11,14 +11,14 @@ Testing approach consisted of the following:
 1. start consumer with file sink (parquet)
 2. start producer with known output records
 3. (optionally)
-	- re-shard Kinesis stream
-	- app kill and start from savepoint
-	- Simulate migration from previous Beam release
-	- Simulate migration to previous Beam release
-	- app start at some timestamp
-	- run with increased network latency (via `tc`)
-	- run with artificial "slow" processor (see `processTimePerRecord` cmd argument)
-	- run with a sometimes-failing processor (see `failAfterRecordsSeenCnt` cmd argument)
+    - re-shard Kinesis stream
+    - app kill and start from savepoint
+      - Simulate migration from previous Beam release
+      - Simulate migration to previous Beam release
+    - app start at some timestamp
+    - run with increased network latency (via `tc`)
+    - run with artificial "slow" processor (see `processTimePerRecord` cmd argument)
+    - run with a sometimes-failing processor (see `failAfterRecordsSeenCnt` cmd argument)
 4. check file sink outputs (with `pyspark`)
 
 ## Requirements
@@ -124,11 +124,11 @@ mvn package -DskipTests \
 	-Dapp.main.class=com.psolomin.consumer.Main
 
 java -jar target/example-com.psolomin.consumer.Main-bundled-0.1-SNAPSHOT.jar \
-	--awsRegion=eu-west-1 \
-	--inputStream=stream-01 \
+	--inputStream=$STREAM \
 	--sinkLocation=$(pwd)/output \
-	--targetParallelism=2 \
-	| tee logs/log.txt
+	--awsRegion=$AWS_REGION \
+	--consumerArn=$CONSUMER_ARN \
+	| tee log.txt
 
 ```
 
@@ -231,17 +231,17 @@ Stop consumer job with a savepoint:
 
 ```
 docker exec -u flink -it kinesis-io-with-enhanced-fan-out-flink-jm-1 bin/flink stop \
-	--savepointPath file:///mnt/savepoints \
-	af0f5c40296e18fa3c4c546d0f1445a3
+	--savepointPath file:///mnt/savepoints/beam-2.47.0 \
+	54ccc62a10984127fa4b025c0ba9ac9e
 ```
 
 Start with a savepoint:
 
 ```
 docker exec -u flink -it kinesis-io-with-enhanced-fan-out-flink-jm-1 flink run \
-	-s file:///mnt/savepoints/savepoint-af0f5c-c88e06035799 \
+	-s file:///mnt/savepoints/beam-2.47.0/savepoint-54ccc6-ecb16d74d4cf \
 	...
-	--kinesisIOConsumerArns="{\"stream-01\": \"$CONSUMER_ARN\"}"
+	--kinesisIOReadStreamToConsumerArnMapping="{\"stream-01\": \"$CONSUMER_ARN\"}"
 
 ```
 
