@@ -1,9 +1,12 @@
-# Apache Beam Playground
+# Playground
 
-Examples of apps which use [Apache Beam](https://beam.apache.org)
+Examples of apps which use:
 
-## Contents
+- [Apache Beam](https://beam.apache.org)
+- [Spark](https://spark.apache.org/docs/latest/index.html)
+- [VertX](https://vertx.io/)
 
-- [File sink with window](file-sink-with-window/README.md)
-- [Kinesis IO with enhanced fan-out](kinesis-io-with-enhanced-fan-out/README.md) 
+The repo is used for:
+- submitting reproducible examples of issues
+- QA-like tests of my own developments
 
