@@ -11,14 +11,14 @@ Testing approach consisted of the following:
 1. start consumer with file sink (parquet)
 2. start producer with known output records
 3. (optionally)
-    - re-shard Kinesis stream
-    - app kill and start from savepoint
-      - Simulate migration from previous Beam release
-      - Simulate migration to previous Beam release
-    - app start at some timestamp
-    - run with increased network latency (via `tc`)
-    - run with artificial "slow" processor (see `processTimePerRecord` cmd argument)
-    - run with a sometimes-failing processor (see `failAfterRecordsSeenCnt` cmd argument)
+	- re-shard Kinesis stream
+	- app kill and start from savepoint
+	- Simulate migration from previous Beam release
+	- Simulate migration to previous Beam release
+	- app start at some timestamp
+	- run with increased network latency (via `tc`)
+	- run with artificial "slow" processor (see `processTimePerRecord` cmd argument)
+	- run with a sometimes-failing processor (see `failAfterRecordsSeenCnt` cmd argument)
 4. check file sink outputs (with `pyspark`)
 
 ## Requirements
@@ -248,4 +248,28 @@ Stop cluster
 
 ```
 docker-compose down -v
+```
+
+
+## SQS
+
+
+```
+mvn package -Pflink -DskipTests \
+	-Dapp.main.class=com.psolomin.flink.FlinkSqsProducer
+
+```
+
+
+Start Flink consumer job
+
+```
+docker exec -u flink -it kinesis-io-with-enhanced-fan-out-flink-jm-1 flink run \
+	--class com.psolomin.flink.FlinkSqsProducer --detached \
+	/mnt/artifacts/example-com.psolomin.flink.FlinkSqsProducer-bundled-0.1-SNAPSHOT.jar \
+	--awsRegion=eu-west-1 \
+	--outputQueueUrl=https://sqs.eu-west-1.amazonaws.com/790288347884/q123 \
+	--msgsToWrite=100 \
+	--parallelism=2
+
 ```
