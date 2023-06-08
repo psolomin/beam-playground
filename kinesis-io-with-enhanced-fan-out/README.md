@@ -268,8 +268,9 @@ docker exec -u flink -it kinesis-io-with-enhanced-fan-out-flink-jm-1 flink run \
 	--class com.psolomin.flink.FlinkSqsProducer --detached \
 	/mnt/artifacts/example-com.psolomin.flink.FlinkSqsProducer-bundled-0.1-SNAPSHOT.jar \
 	--awsRegion=eu-west-1 \
-	--outputQueueUrl=https://sqs.eu-west-1.amazonaws.com/790288347884/q123 \
-	--msgsToWrite=100 \
+	--outputQueueUrl=fff \
+	--msgsToWrite=200000 \
+	--enableBatchedWrites=true \
 	--parallelism=2
 
 ```
