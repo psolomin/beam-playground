@@ -9,6 +9,14 @@ services:
     ports:
       - "3306:3306"
 
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2017-CU22-ubuntu-16.04
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=a123456789!
+    ports:
+      - "1433:1433"
+
   zookeeper:
     image: confluentinc/cp-zookeeper:7.1.1
     environment:

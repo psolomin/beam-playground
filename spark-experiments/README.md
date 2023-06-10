@@ -39,7 +39,7 @@ distros_dir=./distros/spark-3.4.0-bin-hadoop3
 ${distros_dir}/bin/spark-submit \
     --conf spark.driver.extraClassPath="./build/user-libs/*" \
     --conf spark.executor.extraClassPath="./build/user-libs/*" \
-    --class Main ./build/libs/spark-experiments.jar 100
+    --class MainMsSql ./build/libs/spark-experiments.jar 100
 
 ```
 
