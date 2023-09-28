@@ -47,9 +47,9 @@ kcat -b localhost:19092 -t raw -K: -P -l data/input-sample.txt
 Direct runner:
 
 ```
-mvn clean package -DskipTests \
-	-Dapp.main.class=com.kfk.consumer.Main
+mvn clean package -DskipTests -Dapp.main.class=com.kfk.consumer.Main
 
 java -jar target/example-com.kfk.consumer.Main-bundled-0.1-SNAPSHOT.jar \
-	| tee log.txt
+--bootstrapServers=localhost:19092 --inputTopic=raw
+
 ```
