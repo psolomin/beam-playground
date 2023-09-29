@@ -12,8 +12,8 @@ public interface MyPipelineOpts extends PipelineOptions {
     void setBootstrapServers(String value);
 
     @Validation.Required
-    @Description("Kafka topic to read from")
-    String getInputTopic();
+    @Description("Kafka topics to read from - comma-separated")
+    String getInputTopics();
 
-    void setInputTopic(String value);
+    void setInputTopics(String value);
 }

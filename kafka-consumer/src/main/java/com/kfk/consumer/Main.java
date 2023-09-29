@@ -1,12 +1,14 @@
 package com.kfk.consumer;
 
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.io.kafka.KafkaIO;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
 import org.apache.beam.sdk.options.PipelineOptionsValidator;
 import org.apache.beam.sdk.transforms.ParDo;
-import org.apache.beam.vendor.guava.v32_1_2_jre.com.google.common.collect.ImmutableMap;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,12 +23,30 @@ public class Main {
         LOG.info("Parsed opts {}", opts);
         Pipeline p = Pipeline.create(opts);
 
+        Map<String, Object> consumerProps = Map.of("group.id", "my_beam_app_1");
+
+        Map<String, Object> securityProps = Map.of(
+                // "security.protocol", "SSL",
+                // "ssl.keystore.location", "...",
+                // "ssl.keystore.password", "...",
+                // "ssl.key.password", "...",
+                // "ssl.truststore.location", "...",
+                // "ssl.truststore.password", "..."
+                );
+
+        Map<String, Object> allProps = new HashMap<>();
+        allProps.putAll(consumerProps);
+        allProps.putAll(securityProps);
+
+        List<String> topics = Arrays.asList(opts.getInputTopics().split(","));
+
         p.apply(KafkaIO.<byte[], byte[]>read()
                         .withBootstrapServers(opts.getBootstrapServers())
-                        .withTopic(opts.getInputTopic())
+                        .withTopics(topics)
                         .withKeyDeserializer(ByteArrayDeserializer.class)
                         .withValueDeserializer(ByteArrayDeserializer.class)
-                        .withConsumerConfigUpdates(ImmutableMap.of("group.id", "my_beam_app_1"))
+                        .withConsumerConfigUpdates(allProps)
+                        .withOffsetConsumerConfigOverrides(securityProps)
                         .withProcessingTime()
                         .withReadCommitted()
                         .commitOffsetsInFinalize())
