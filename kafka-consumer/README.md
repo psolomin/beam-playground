@@ -50,6 +50,7 @@ Direct runner:
 mvn clean package -DskipTests -Dapp.main.class=com.kfk.consumer.Main
 
 java -jar target/example-com.kfk.consumer.Main-bundled-0.1-SNAPSHOT.jar \
-  --bootstrapServers=localhost:19092 --inputTopics=raw
+  --bootstrapServers=localhost:19092 --inputTopics=raw,raw2 \
+  --streaming=true
 
 ```

@@ -26,6 +26,8 @@ services:
     command: |
       bash -c 'cub kafka-ready -b kafka:9092 1 50 && \
         kafka-topics --create --topic raw \
+          --partitions 2 --replication-factor 1 --bootstrap-server kafka:9092 && \
+        kafka-topics --create --topic raw2 \
           --partitions 2 --replication-factor 1 --bootstrap-server kafka:9092'
     environment:
       KAFKA_BROKER_ID: ignored
