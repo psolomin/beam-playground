@@ -16,4 +16,10 @@ public interface MyPipelineOpts extends PipelineOptions {
     String getInputTopics();
 
     void setInputTopics(String value);
+
+    @Validation.Required
+    @Description("Output directory or URI like gs://... ")
+    String getOutputDir();
+
+    void setOutputDir(String value);
 }
