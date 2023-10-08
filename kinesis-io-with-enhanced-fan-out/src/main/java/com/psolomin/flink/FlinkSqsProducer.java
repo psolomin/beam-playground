@@ -1,6 +1,7 @@
 package com.psolomin.flink;
 
 import com.psolomin.sqs.SqsProducerOpts;
+import org.apache.beam.runners.flink.FlinkPipelineOptions;
 import org.apache.beam.runners.flink.FlinkRunner;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.io.GenerateSequence;
@@ -14,11 +15,13 @@ import org.apache.beam.sdk.values.TypeDescriptor;
 import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
 
 public class FlinkSqsProducer {
+    public interface FlinkSqsProducerOpts extends SqsProducerOpts, FlinkPipelineOptions {}
+
     public static void main(String[] args) {
-        SqsProducerOpts opts = PipelineOptionsFactory.fromArgs(args).as(SqsProducerOpts.class);
+        FlinkSqsProducerOpts opts = PipelineOptionsFactory.fromArgs(args).as(FlinkSqsProducerOpts.class);
         opts.setRunner(FlinkRunner.class);
         opts.setShutdownSourcesAfterIdleMs(Long.MAX_VALUE);
-        PipelineOptionsValidator.validate(SqsProducerOpts.class, opts);
+        PipelineOptionsValidator.validate(FlinkSqsProducerOpts.class, opts);
         Pipeline p = Pipeline.create(opts);
 
         PCollection<Long> df =

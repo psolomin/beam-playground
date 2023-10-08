@@ -1,13 +1,12 @@
 package com.psolomin.sqs;
 
-import org.apache.beam.runners.flink.FlinkPipelineOptions;
 import org.apache.beam.sdk.io.aws2.options.AwsOptions;
 import org.apache.beam.sdk.options.Default;
 import org.apache.beam.sdk.options.Description;
 import org.apache.beam.sdk.options.PipelineOptions;
 import org.apache.beam.sdk.options.Validation;
 
-public interface SqsProducerOpts extends PipelineOptions, FlinkPipelineOptions, AwsOptions {
+public interface SqsProducerOpts extends PipelineOptions, AwsOptions {
     @Validation.Required
     @Description("Queue URL for writing.")
     String getOutputQueueUrl();
