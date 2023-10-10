@@ -183,6 +183,7 @@
                         <configuration>
                             <excludes>
                                 <exclude>**com/kfk/consumer/FlinkRunnerMain.java</exclude>
+                                <exclude>**com/kfk/producer/Main.java</exclude>
                             </excludes>
                         </configuration>
                     </plugin>
