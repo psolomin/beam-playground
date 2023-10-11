@@ -1,7 +1,5 @@
 package com.kfk.consumer;
 
-import static org.apache.beam.sdk.io.FileIO.Write.defaultNaming;
-
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -73,6 +71,6 @@ public class MyPipeline {
                                         }))
                                 .to(opts.getOutputDir())
                                 // topic name will be a sub-dir with data received from that topic only
-                                .withNaming(topic -> defaultNaming(topic + "/data", ".json")));
+                                .withNaming(topic -> new NoColonFileNaming(topic + "/out-")));
     }
 }
