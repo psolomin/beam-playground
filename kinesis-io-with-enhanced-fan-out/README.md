@@ -207,7 +207,7 @@ docker exec -u flink -it kinesis-io-with-enhanced-fan-out-flink-jm-1 flink run \
 	--minPauseBetweenCheckpoints=5000 \
 	--stateBackend=rocksdb \
 	--stateBackendStoragePath=file:///tmp/flink-state \
-	--parallelism=2
+	--parallelism=3
 
 ```
 
@@ -220,9 +220,9 @@ docker exec -u flink -it kinesis-io-with-enhanced-fan-out-flink-jm-1 flink run \
 	--awsRegion=eu-west-1 \
 	--outputStream=stream-01 \
 	--msgsToWrite=20000 \
-	--msgsPerSec=50 \
+	--msgsPerSec=150 \
 	--streaming \
-	--parallelism=2
+	--parallelism=1
 
 ```
 

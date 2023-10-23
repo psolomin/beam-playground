@@ -58,6 +58,7 @@ public class KinesisToFilePipeline {
         }
 
         PCollection<KinesisRecord> windowedRecords = p.apply("Source", reader)
+                .apply("Assign ts", ParDo.of(new AssignTimestampsDoFn()))
                 .apply("Fixed windows", Window.<KinesisRecord>into(FixedWindows.of(Duration.standardSeconds(60))));
 
         KinesisToFilePipeline.write(windowedRecords, opts);
